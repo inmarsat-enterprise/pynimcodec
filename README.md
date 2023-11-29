@@ -19,13 +19,16 @@ representing a microservice running on an IoT device.
 Each `<Service>` consists of `<ForwardMessages>` (e.g. commands) and/or
 `<ReturnMessages>` (e.g. reports or responses from the IoT device).
 SIN must be in a range 16..255.
-    > [!CAUTION]
+    
+    > [!WARNING]
     > SIN range 16..127 may *conflict* with certain ORBCOMM-reserved messages
     > when using the ORBCOMM IDP service.
+
 * Second byte of payload is *Message Identification Number* (**MIN**)
 representing a remote operation such as a data report or a command.
 The combination of **SIN** and **MIN** and direction (Forward/Return) enables
 decoding of subsequent `<Fields>` containing data.
+
 * Subsequent bytes of data are defined by `<Fields>` where each `<Field>` has
 a data type such as `<SignedIntField>`, `<EnumField>`, etc.
 These fields can be defined on individual bitwise boundaries, for example a
