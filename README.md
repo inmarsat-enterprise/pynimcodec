@@ -20,9 +20,9 @@ Each `<Service>` consists of `<ForwardMessages>` (e.g. commands) and/or
 `<ReturnMessages>` (e.g. reports or responses from the IoT device).
 SIN must be in a range 16..255.
     
-    > [!WARNING]
-    > SIN range 16..127 may *conflict* with certain ORBCOMM-reserved messages
-    > when using the ORBCOMM IDP service.
+> [!WARNING]
+> SIN range 16..127 may *conflict* with certain ORBCOMM-reserved messages
+> when using the ORBCOMM IDP service.
 
 * Second byte of payload is *Message Identification Number* (**MIN**)
 representing a remote operation such as a data report or a command.
