@@ -1,5 +1,6 @@
 [tool.poetry]
 name = "pynimcodec"
+packages = [ { include = "messagecodecs" } ]
 version = "0.1.0"
 description = "Codecs for Satellite IoT messaging implemented in Python."
 authors = ["geoffbrucepayne <geoff.bruce-payne@inmarsat.com>"]
