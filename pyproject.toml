@@ -4,6 +4,9 @@ version = "0.1.0"
 description = "Codecs for Satellite IoT messaging implemented in Python."
 authors = ["geoffbrucepayne <geoff.bruce-payne@inmarsat.com>"]
 license = "Apache2.0"
+repository = "https://github.com/inmarsat-enterprise/pynimomodem"
+readme = "README.md"
+keywords = ["viasat", "inmarsat", "satellite", "iot", "idp", "ogx", "orbcomm"]
 
 [tool.poetry.dependencies]
 python = "^3.10"
