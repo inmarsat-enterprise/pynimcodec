@@ -693,7 +693,7 @@ class TextMo(MessageCodec):
                     self.fields['latitude'].value = lat
                     self.fields['longitude'].value = lng
                 else:
-                    logger.warning(f'Invalid location supplied, ignoring')
+                    logger.warning('Invalid location supplied, ignoring')
             elif kwarg == 'destination':
                 dest = kwargs['destination']
                 if not isinstance(dest, int) or dest not in range(0, 2**32):
@@ -702,7 +702,7 @@ class TextMo(MessageCodec):
             else:
                 logger.warning(f'Ignoring unknown kwarg: {kwarg}')
         if encoding and not valid:
-            raise ValueError(f'Missing at least one of text or help_code')
+            raise ValueError('Missing at least one of text or help_code')
 
 
 def test_optional_location():
