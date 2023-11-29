@@ -1,0 +1,23 @@
+[tool.poetry]
+name = "satellite-iot-pycodec"
+version = "0.1.0"
+description = "Codecs for Satellite IoT messaging implemented in Python."
+authors = ["geoffbrucepayne <geoff.bruce-payne@inmarsat.com>"]
+license = "Apache2.0"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+
+[tool.poetry.dev-dependencies]
+pytest = "^7.4.3"
+pylint = "^3.0.2"
+
+[tool.pytest.ini_options]
+log_cli = true
+log_cli_level = "DEBUG"
+log_cli_format = "%(asctime)s,[%(levelname)s],(%(threadName)s),%(module)s.%(funcName)s:%(lineno)s,%(message)s"
+log_cli_date_format = "%Y-%m-%d %H:%M:%S"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
