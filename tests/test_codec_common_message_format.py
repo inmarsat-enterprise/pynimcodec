@@ -9,7 +9,7 @@ from dataclasses import dataclass
 
 import pytest
 
-from messagecodecs.nimo import (
+from pynimcodec.nimo import (
     ArrayField,
     BooleanField,
     DataField,
@@ -26,7 +26,7 @@ from messagecodecs.nimo import (
     UnsignedIntField,
     optimal_bits,
 )
-from messagecodecs.nimo.message_definitions import _indent
+from pynimcodec.nimo.message_definitions import _indent
 
 logging.basicConfig()
 logger = logging.getLogger()
