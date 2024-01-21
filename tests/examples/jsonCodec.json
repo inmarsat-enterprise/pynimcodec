@@ -1,0 +1,100 @@
+{
+  "nimoMessageDefinition": {
+    "name": null,
+    "description": null,
+    "version": null,
+    "services": [
+      {
+        "name": "testService",
+        "codecServiceId": 255,
+        "description": null,
+        "mobileOriginatedMessages": [
+          {
+            "name": "testMoMessage",
+            "codecMessageId": 0,
+            "description": "An optional description of the message/operation",
+            "fields": [
+              {
+                "type": "booleanField",
+                "name": "testBool",
+                "description": null,
+                "optional": null,
+                "default": null
+              },
+              {
+                "type": "enumField",
+                "name": "testEnum",
+                "description": "An optional description of the field/data",
+                "optional": false,
+                "default": "enumString0",
+                "size": 2,
+                "fixed": true,
+                "items": ["enumString0", "enumString1"]
+              },
+              {
+                "type": "uintField",
+                "name": "testUint",
+                "description": null,
+                "optional": null,
+                "default": null,
+                "size": 32
+              },
+              {
+                "type": "intField",
+                "name": "testUint",
+                "description": null,
+                "optional": null,
+                "default": null,
+                "size": 25
+              },
+              {
+                "type": "stringField",
+                "name": "testString",
+                "description": null,
+                "optional": null,
+                "default": null,
+                "size": 128,
+                "fixed": null
+              },
+              {
+                "type": "dataField",
+                "name": "testData",
+                "description": null,
+                "optional": null,
+                "size": 256,
+                "fixed": null
+              },
+              {
+                "type": "arrayField",
+                "name": "testArray",
+                "description": null,
+                "optional": null,
+                "size": 32,
+                "fixed": null,
+                "fields": [
+                  {
+                    "type": "intField",
+                    "name": "testArrayIntCol0",
+                    "description": null,
+                    "optional": null,
+                    "size": 32,
+                    "default": null
+                  },
+                  {
+                    "type": "intField",
+                    "name": "testArrayIntCol1",
+                    "description": null,
+                    "optional": null,
+                    "size": 5,
+                    "default": null
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "mobileTerminatedMessages": null
+      }
+    ]
+  }
+}

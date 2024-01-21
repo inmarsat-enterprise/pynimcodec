@@ -1,4 +1,4 @@
-from .. import DATA_TYPES, ET
+from .. import DATA_TYPES, XML_NAMESPACE, ET
 from ..base import BaseCodec, CodecList
 
 
@@ -64,9 +64,11 @@ class FieldCodec(BaseCodec):
     def _base_xml(self) -> ET.Element:
         """The default XML template for a Field."""
         xsi_type = DATA_TYPES[self.data_type]
-        xmlfield = ET.Element('Field', attrib={
-            '{http://www.w3.org/2001/XMLSchema-instance}type': xsi_type
-        })
+        attrib = { f'{{{XML_NAMESPACE["xsi"]}}}type': xsi_type}
+        # xmlfield = ET.Element('Field', attrib={
+        #     '{http://www.w3.org/2001/XMLSchema-instance}type': xsi_type
+        # })
+        xmlfield = ET.Element('Field', attrib)
         name = ET.SubElement(xmlfield, 'Name')
         name.text = self.name
         if self.description:

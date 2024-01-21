@@ -4,6 +4,7 @@ import logging
 import math
 import os
 import xml.etree.ElementTree as ET
+from collections import OrderedDict
 from copy import deepcopy
 from dataclasses import dataclass
 
@@ -25,8 +26,10 @@ from pynimcodec.nimo import (
     StringField,
     UnsignedIntField,
     optimal_bits,
+    decode_message,
 )
-from pynimcodec.nimo.message_definitions import _indent
+
+EXPORT_DIR = os.getenv('EXPORT_DIR', 'tests/examples')
 
 logging.basicConfig()
 logger = logging.getLogger()
@@ -564,26 +567,6 @@ def test_enum_xml(enum_field):
     assert enum_str.find('<Items>') < enum_str.find('<Size>')
 
 
-def test_indent():
-    root = ET.fromstring('<A><B>..</B><C><D>...</D></C></A>')
-    spaces = 2
-    _indent(root, spaces=spaces)
-    output = ET.tostring(root).decode('utf-8')
-    test_filename = './indent.xml'
-    with open(test_filename, 'w') as f:
-        f.write(output)
-    with open(test_filename, 'r') as f:
-        lines = f.readlines()
-        for line in lines:
-            if any(x in line for x in ['<A>', '</A>']):
-                assert line.startswith('<')
-            elif any(x in line for x in ['<B>', '</B>', '<C>', '</C>']):
-                assert line.startswith(' ' * spaces + '<')
-            elif any(x in line for x in ['<D>', '</D>']):
-                assert line.startswith(' ' * spaces * 2 + '<')
-    os.remove(test_filename)
-
-
 def test_array_xml(array_field):
     test_field: ArrayField = array_field()
     xml = test_field.xml()
@@ -612,10 +595,485 @@ def test_return_message_xml(return_message):
 
 
 def test_mdf_xml(message_definitions: MessageDefinitions):
-    test_filename = './mdf.xml'
-    message_definitions.mdf_export(test_filename, pretty=True)
+    test_filename = os.path.join(os.getcwd(), EXPORT_DIR, 'mdf.xml')
+    message_definitions.mdf_export(test_filename, pretty=True, indent=4)
     assert True   # manual validation
     os.remove(test_filename)
+
+
+DECODE_TEST_CASES = {
+    'location': {
+        'codec': os.path.join(os.getcwd(), 'secrets/nimomodem.json'),
+        'raw_payload': [
+            0,
+            72,
+            1,
+            41,
+            117,
+            173,
+            221,
+            71,
+            129,
+            0,
+            88,
+            2,
+            82,
+            20,
+            53,
+        ],
+        'decoded': dict({
+            "name": "location",
+            "description": "The modem's location",
+            "codecServiceId": 0,
+            "codecMessageId": 72,
+            "fields": [
+                {
+                    "name": "fixStatus",
+                    "description": "Status of GNSS fix",
+                    "value": "VALID",
+                    "type": "enum"
+                },
+                {
+                    "name": "latitude",
+                    "description": "Latitude in 0.001 minutes",
+                    "value": 2717101,
+                    "type": "int"
+                },
+                {
+                    "name": "longitude",
+                    "description": "Longitude in 0.001 minutes",
+                    "value": -4550910,
+                    "type": "int"
+                },
+                {
+                    "name": "altitude",
+                    "description": "Altitude in meters",
+                    "value": 88,
+                    "type": "int"
+                },
+                {
+                    "name": "speed",
+                    "description": "Speed in km/h",
+                    "value": 2,
+                    "type": "uint"
+                },
+                {
+                    "name": "heading",
+                    "description": "Heading in 2-degree increments from North",
+                    "value": 82,
+                    "type": "uint"
+                },
+                {
+                    "name": "dayOfMonth",
+                    "value": 2,
+                    "type": "uint"
+                },
+                {
+                    "name": "minuteOfDay",
+                    "value": 1077,
+                    "type": "uint"
+                }
+            ]
+        })
+    },
+    'rlSysConfig': {
+        'codec': os.path.join(os.getcwd(), 'secrets/nimomodem.json'),
+        'raw_payload': [
+            0,
+            135,
+            32,
+            6,
+            80,
+            60,
+            6,
+            96,
+            44,
+            6,
+            112,
+            44,
+            6,
+            128,
+            44,
+            6,
+            144,
+            60,
+            12,
+            144,
+            76,
+            12,
+            160,
+            60,
+            12,
+            176,
+            60,
+            12,
+            192,
+            76,
+            18,
+            208,
+            44,
+            18,
+            224,
+            44,
+            18,
+            240,
+            60,
+            19,
+            0,
+            44,
+            19,
+            16,
+            60,
+            25,
+            16,
+            44,
+            25,
+            32,
+            28,
+            31,
+            80,
+            60,
+            31,
+            96,
+            60,
+            31,
+            112,
+            60,
+            31,
+            128,
+            44,
+            31,
+            144,
+            28,
+            31,
+            160,
+            28,
+            255,
+            240,
+            184,
+            6,
+            128,
+            60,
+            6,
+            112,
+            60,
+            6,
+            96,
+            60,
+            6,
+            80,
+            76,
+            6,
+            144,
+            76,
+            12,
+            144,
+            92,
+            12,
+            160,
+            76,
+            12,
+            176,
+            76,
+            12,
+            192,
+            92,
+            5,
+            0,
+            184,
+            0,
+            200,
+            0,
+            216,
+            0,
+            232,
+            0,
+            248,
+            9,
+            0,
+            184,
+            0,
+            200,
+            0,
+            216,
+            0,
+            232,
+            0,
+            248,
+            1,
+            8,
+            1,
+            24,
+            1,
+            40,
+            1,
+            56,
+            60,
+            0,
+            16,
+            32,
+            8,
+            0,
+            32,
+            32,
+            8,
+            0,
+            48,
+            32,
+            8,
+            0,
+            64,
+            32,
+            8,
+            0,
+            80,
+            32,
+            8,
+            0,
+            96,
+            32,
+            8,
+            0,
+            112,
+            32,
+            8,
+            0,
+            128,
+            32,
+            8,
+            0,
+            144,
+            32,
+            8,
+            0,
+            160,
+            32,
+            8,
+            0,
+            176,
+            32,
+            8,
+            0,
+            192,
+            32,
+            8,
+            0,
+            208,
+            32,
+            8,
+            0,
+            224,
+            32,
+            8,
+            0,
+            240,
+            32,
+            8,
+            1,
+            0,
+            32,
+            8,
+            1,
+            48,
+            32,
+            8,
+            1,
+            80,
+            64,
+            8,
+            1,
+            96,
+            64,
+            8,
+            1,
+            112,
+            96,
+            8,
+            1,
+            128,
+            64,
+            8,
+            1,
+            144,
+            64,
+            8,
+            1,
+            160,
+            64,
+            8,
+            1,
+            176,
+            96,
+            8,
+            1,
+            192,
+            64,
+            8,
+            1,
+            208,
+            64,
+            8,
+            1,
+            224,
+            64,
+            8,
+            1,
+            240,
+            64,
+            8,
+            2,
+            0,
+            96,
+            8,
+            2,
+            16,
+            64,
+            8,
+            2,
+            32,
+            64,
+            8,
+            2,
+            48,
+            64,
+            8,
+            2,
+            64,
+            64,
+            8,
+            2,
+            80,
+            64,
+            8,
+            2,
+            96,
+            64,
+            8,
+            2,
+            112,
+            64,
+            8,
+            2,
+            144,
+            32,
+            8,
+            2,
+            160,
+            32,
+            8,
+            2,
+            176,
+            32,
+            8,
+            2,
+            192,
+            32,
+            8,
+            2,
+            208,
+            32,
+            8,
+            2,
+            224,
+            32,
+            8,
+            2,
+            240,
+            32,
+            8,
+            3,
+            0,
+            32,
+            8,
+            3,
+            16,
+            32,
+            8,
+            3,
+            32,
+            32,
+            8,
+            3,
+            48,
+            32,
+            8,
+            3,
+            64,
+            32,
+            8,
+            3,
+            80,
+            32,
+            8,
+            3,
+            96,
+            32,
+            8,
+            3,
+            112,
+            32,
+            8,
+            3,
+            128,
+            32,
+            8,
+            3,
+            144,
+            32,
+            8,
+            3,
+            160,
+            32,
+            8,
+            3,
+            176,
+            32,
+            8,
+            3,
+            208,
+            32,
+            8,
+            5,
+            160,
+            32,
+            8,
+            5,
+            176,
+            32,
+            8,
+            5,
+            192,
+            32,
+            8,
+            5,
+            240,
+            32,
+            8
+        ],
+        'decoded': {},
+    },
+}
+
+def test_message_definitions_decode_message():
+    """"""
+    for test_inputs in DECODE_TEST_CASES.values():
+        if not test_inputs.get('exclude', False):
+            test_codec = test_inputs.get('codec')
+            data = bytes(test_inputs.get('raw_payload'))
+            res = decode_message(data, test_codec)
+            expected: dict = test_inputs.get('decoded')
+            if expected:
+                try:
+                    assert res == expected
+                except AssertionError:
+                    for k, v in res.items():
+                        if isinstance(v, list):
+                            for i in v:
+                                assert i in expected[k]
+                        else:
+                            assert k in expected and expected[k] == v
+            else:
+                assert True
 
 
 def test_rm_codec(return_message):

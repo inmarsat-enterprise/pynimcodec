@@ -8,8 +8,8 @@ class DataFormat(IntEnum):
 
 
 XML_NAMESPACE = {
+    'xsd': 'http://www.w3.org/2001/XMLSchema',
     'xsi': 'http://www.w3.org/2001/XMLSchema-instance',
-    'xsd': 'http://www.w3.org/2001/XMLSchema'
 }
 
 DATA_TYPES = {
