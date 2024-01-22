@@ -7,34 +7,35 @@ from .helpers import decode_field_length, encode_field_length
 
 class StringField(FieldCodec):
     """A character string sent over-the-air."""
-    def __init__(self,
-                 name: str,
-                 size: int,
-                 description: str = None,
-                 optional: bool = False,
-                 fixed: bool = False,
-                 default: str = None,
-                 value: str = None) -> None:
+    def __init__(self, name: str, size: int, **kwargs):
         """Instantiates a StringField.
         
         Args:
-            name: The field name must be unique within a Message.
-            size: The maximum number of characters in the string.
-            description: An optional description/purpose for the string.
-            optional: Indicates if the string is optional in the Message.
-            fixed: Indicates if the string is always fixed length `size`.
-            default: A default value for the string.
-            value: Optional value to set during initialization.
+            name (str): The field name must be unique within a Message.
+            size (int): The maximum number of characters in the string.
+        
+        Keyword Args:
+            description (str): An optional description/purpose for the string.
+            optional (bool): Indicates if the string is optional in the Message.
+            fixed (bool): Indicates if the string is always fixed length `size`.
+            default (str): A default value for the string.
+            value (str): Optional value to set during initialization.
 
         """
+        if not isinstance(size, int) or size < 1:
+            raise ValueError('Invalid string size')
         super().__init__(name=name,
                          data_type='string',
-                         description=description,
-                         optional=optional)
+                         description=kwargs.get('description', None),
+                         optional=kwargs.get('optional', None))
         self._size = size
-        self._fixed = fixed
-        self._default = default
-        self._value = value if value is not None else self._default
+        self._fixed = None
+        self._default = None
+        self._value = None
+        supported_kwargs = ['fixed', 'default', 'value']
+        for k, v in kwargs.items():
+            if k in supported_kwargs and hasattr(self, k):
+                setattr(self, k, v)
     
     def _validate_string(self, s: str) -> str:
         if s is not None:
@@ -80,6 +81,8 @@ class StringField(FieldCodec):
     
     @fixed.setter
     def fixed(self, value: bool):
+        if value is not None or not isinstance(value, bool):
+            raise ValueError('Invalid fixed setting')
         self._fixed = value
 
     @property
@@ -130,14 +133,9 @@ class StringField(FieldCodec):
         return bit_index + length * 8
 
     def xml(self) -> ET.Element:
-        """Returns the String XML definition for a Message Definition File."""
-        xmlfield = self._base_xml()
-        size = ET.SubElement(xmlfield, 'Size')
-        size.text = str(self.size)
-        if self.fixed:
-            fixed = ET.SubElement(xmlfield, 'Fixed')
-            fixed.text = 'true'
-        if self.default:
-            default = ET.SubElement(xmlfield, 'Default')
-            default.text = str(self.default)
-        return xmlfield
+        """The StringField XML definition."""
+        return super().xml(['Size', 'Fixed', 'Default'])
+    
+    def json(self) -> dict:
+        """The StringField JSON definition."""
+        return super().json(['Size', 'Fixed', 'Default'])

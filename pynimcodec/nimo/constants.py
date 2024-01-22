@@ -30,4 +30,13 @@ DATA_TYPES = {
     'array': 'ArrayField',
 }
 
+FIELD_TYPES_JSON = {
+    'BooleanField': 'boolField',
+    'EnumField': 'enumField',
+    'DataField': 'dataField',
+    'ArrayField': 'arrayField',
+    'SignedIntField': 'intField',
+    'UnsignedIntField': 'uintField',
+}
+
 SIN_RANGE = (16, 255)

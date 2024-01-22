@@ -1,43 +1,45 @@
 from warnings import warn
 
-from .. import ET
+from .. import ET, DATA_TYPES
 from .base_field import FieldCodec
 
 
 class UnsignedIntField(FieldCodec):
     """An unsigned integer value using a defined number of bits over-the-air."""
-    def __init__(self,
-                 name: str,
-                 size: int,
-                 data_type: str = 'uint_16',
-                 description: str = None,
-                 optional: bool = False,
-                 default: int = None,
-                 value: int = None) -> None:
+    # SUPPORTED_UINT_TYPES = ['uint_8', 'uint_16', 'uint_32']
+    def __init__(self, name: str, size: int, **kwargs):
         """Instantiates a UnsignedIntField.
         
         Args:
-            name: The field name must be unique within a Message.
-            size: The number of *bits* used to encode the integer over-the-air
+            name (str): The field name must be unique within a Message.
+            size (int): The number of *bits* used to encode over-the-air
                 (maximum 32).
-            data_type: The integer type represented (for decoding).
-            description: An optional description/purpose for the string.
-            optional: Indicates if the string is optional in the Message.
-            default: A default value for the string.
-            value: Optional value to set during initialization.
+        
+        Keyword Args:
+            description (str): An optional description/purpose for the string.
+            optional (bool): Indicates if the string is optional in the Message.
+            default (int): A default value for the string.
+            value (int): Optional value to set during initialization.
+            data_type (str): The integer type represented (default uint_32).
 
         """
-        if data_type not in ['uint_8', 'uint_16', 'uint_32']:
+        data_type = kwargs.pop('data_type', 'uint_32')
+        # if data_type is None or data_type not in self.SUPPORTED_UINT_TYPES:
+        if not UnsignedIntField._is_valid_type(data_type):
             raise ValueError(f'Invalid unsignedint type {data_type}')
         if not isinstance(size, int) or size < 1:
             raise ValueError('Size must be int greater than zero')
         super().__init__(name=name,
                          data_type=data_type,
-                         description=description,
-                         optional=optional)
+                         description=kwargs.pop('description', None),
+                         optional=kwargs.pop('optional', None))
         self._size = size
-        self._default = default
-        self._value = value if value is not None else self._default
+        self._default = None
+        self._value = None
+        supported_kwargs = ['default', 'value']
+        for k, v in kwargs.items():
+            if k in supported_kwargs and hasattr(self, k):
+                setattr(self, k, v)
     
     @property
     def size(self):
@@ -108,27 +110,18 @@ class UnsignedIntField(FieldCodec):
         return self.size
 
     def xml(self) -> ET.Element:
-        """Returns the UnsignedInt XML definition for a Message Definition File.
-        """
-        xmlfield = self._base_xml()
-        size = ET.SubElement(xmlfield, 'Size')
-        size.text = str(self.size)
-        if self.default:
-            default = ET.SubElement(xmlfield, 'Default')
-            default.text = str(self.default)
-        return xmlfield
+        """The UnsignedIntField XML definition."""
+        return super().xml(['Size', 'Default'])
+    
+    def json(self) -> dict:
+        """The UnsignedIntField JSON definition."""
+        return super().json(['size', 'default'])
 
 
 class SignedIntField(FieldCodec):
     """A signed integer value using a defined number of bits over-the-air."""
-    def __init__(self,
-                 name: str,
-                 size: int,
-                 data_type: str = 'int_16',
-                 description: str = None,
-                 optional: bool = False,
-                 default: int = None,
-                 value: int = None) -> None:
+    # SUPPORTED_INT_TYPES = ['int_8', 'int_16', 'int_32']
+    def __init__(self, name: str, size: int, **kwargs):
         """Instantiates a SignedIntField.
         
         Args:
@@ -142,17 +135,23 @@ class SignedIntField(FieldCodec):
             value: Optional value to set during initialization.
 
         """
-        if data_type not in ['int_8', 'int_16', 'int_32']:
+        data_type = kwargs.pop('data_type', 'int_32')
+        # if data_type is None or data_type not in self.SUPPORTED_INT_TYPES:
+        if not SignedIntField._is_valid_type(data_type):
             raise ValueError(f'Invalid unsignedint type {data_type}')
         if not isinstance(size, int) or size < 1:
             raise ValueError('Size must be int greater than zero')
         super().__init__(name=name,
                          data_type=data_type,
-                         description=description,
-                         optional=optional)
+                         description=kwargs.pop('description', None),
+                         optional=kwargs.pop('optional', None))
         self._size = size
-        self._default = default
-        self._value = value if value is not None else self._default
+        self._default = None
+        self._value = None
+        supported_kwargs = ['default', 'value']
+        for k, v in kwargs.items():
+            if k in supported_kwargs and hasattr(self, k):
+                setattr(self, k, v)
     
     @property
     def size(self):
@@ -239,12 +238,9 @@ class SignedIntField(FieldCodec):
         return self.size
 
     def xml(self) -> ET.Element:
-        """Returns the SignedInt XML definition for a Message Definition File.
-        """
-        xmlfield = self._base_xml()
-        size = ET.SubElement(xmlfield, 'Size')
-        size.text = str(self.size)
-        if self.default:
-            default = ET.SubElement(xmlfield, 'Default')
-            default.text = str(self.default)
-        return xmlfield
+        """The SignedIntField XML definition."""
+        return super().xml(['Size', 'Default'])
+    
+    def json(self) -> dict:
+        """The SignedIntField JSON definition."""
+        return super().json(['size', 'default'])

@@ -4,16 +4,7 @@ from .base_field import FieldCodec
 
 class BooleanField(FieldCodec):
     """A Boolean field."""
-    def __init__(self,
-                 name: str,
-                 description: str = None,
-                 optional: bool = False,
-                 default: bool = False,
-                 value: bool = None) -> None:
-        super().__init__(name=name,
-                         data_type='bool',
-                         description=description,
-                         optional=optional)
+    def __init__(self, name: str, **kwargs):
         """Instantiates a BooleanField.
         
         Args:
@@ -24,8 +15,16 @@ class BooleanField(FieldCodec):
             value: Optional value to set during initialization.
 
         """
-        self._default = default if isinstance(default, bool) else False
-        self._value = value if value is not None else self._default
+        super().__init__(name=name,
+                         data_type='bool',
+                         description=kwargs.pop('description', None),
+                         optional=kwargs.pop('optional', None))
+        self._default = None
+        self._value = None
+        supported_kwargs = ['default', 'value']
+        for k, v in kwargs.items():
+            if k in supported_kwargs and hasattr(self, k):
+                setattr(self, k, v)
     
     @property
     def default(self):
@@ -71,9 +70,9 @@ class BooleanField(FieldCodec):
         return 1
 
     def xml(self) -> ET.Element:
-        """Returns the Boolean XML definition for a Message Definition File."""
-        xmlfield = self._base_xml()
-        if self.default:
-            default = ET.SubElement(xmlfield, 'Default')
-            default.text = 'true'
-        return xmlfield
+        """The BooleanField XML definition."""
+        return super().xml(['Default'])
+    
+    def json(self) -> dict:
+        """The BooleanField JSON definition."""
+        return super().json(['default'])

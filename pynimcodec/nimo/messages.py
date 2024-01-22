@@ -25,15 +25,15 @@ class MessageCodec(BaseCodec):
                  name: str,
                  sin: int,
                  min: int,
-                 description: str = None,
-                 is_forward: bool = False,
-                 fields: Fields = None):
+                 **kwargs):
         """Instantiates a Message.
         
         Args:
             name: The message name should be unique within the xMessages list.
             sin: The Service Identification Number (16..255)
             min: The Message Identification Number (0..255)
+        
+        Keyword Args:
             description: (Optional) Description/purpose of the Message.
             is_forward: Indicates if the message is intended to be
                 Mobile-Terminated.
@@ -41,14 +41,17 @@ class MessageCodec(BaseCodec):
 
         """
         if not isinstance(sin, int) or sin not in range(16, 256):
-            raise ValueError(f'Invalid SIN {sin} must be in range 16..255')
+            if not(sin == 0 and kwargs.get('override_sin', True)):
+                raise ValueError(f'Invalid SIN {sin} must be in range 16..255')
         if not isinstance(min, int) or min not in range (0, 256):
             raise ValueError(f'Invalid MIN {min} must be in range 0..255')
+        description = kwargs.get('description', None)
         super().__init__(name, description)
-        self._is_forward = is_forward
+        self._is_forward = kwargs.get('is_forward', False)
         self._sin = sin
         self._min = min
-        self._fields: Fields = fields or Fields()
+        fields = kwargs.get('fields', None)
+        self._fields = fields if isinstance(fields, Fields) else Fields()
 
     @property
     def is_forward(self) -> bool:
@@ -63,7 +66,7 @@ class MessageCodec(BaseCodec):
         return self._min
 
     @property
-    def fields(self) -> Fields:
+    def fields(self) -> 'list[FieldCodec]':
         return self._fields
     
     @fields.setter
@@ -158,11 +161,22 @@ class MessageCodec(BaseCodec):
         for field in self.fields:
             fields.append(field.xml())
         return xmessage
+    
+    def json(self) -> dict:
+        """Returns the message JSON definition."""
+        msg = {
+            'name': self.name,
+            'codecMessageId': self.min,
+            'fields': [f.json() for f in self.fields]
+        }
+        if self.description:
+            msg['description'] = self.description
+        return msg
 
 
 class Messages(CodecList):
     """The list of Messages (Forward or Return) within a Service."""
-    def __init__(self, sin: int, is_forward: bool):
+    def __init__(self, sin: int, is_forward: bool) -> 'list[MessageCodec]':
         super().__init__(codec_cls=MessageCodec)
         self.sin = sin
         self.is_forward = is_forward

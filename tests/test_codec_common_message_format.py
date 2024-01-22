@@ -540,7 +540,7 @@ def test_signedint_field():
 
 
 def test_bool_xml(bool_field):
-    test_field = bool_field()
+    test_field: BooleanField = bool_field()
     xml = test_field.xml()
     assert(xml.attrib['{http://www.w3.org/2001/XMLSchema-instance}type'] == 'BooleanField')
     assert(xml.find('Name').text == test_field.name)
@@ -602,8 +602,82 @@ def test_mdf_xml(message_definitions: MessageDefinitions):
 
 
 DECODE_TEST_CASES = {
-    'location': {
+    'locationJsonCodec': {
         'codec': os.path.join(os.getcwd(), 'secrets/nimomodem.json'),
+        'raw_payload': [
+            0,
+            72,
+            1,
+            41,
+            117,
+            173,
+            221,
+            71,
+            129,
+            0,
+            88,
+            2,
+            82,
+            20,
+            53,
+        ],
+        'decoded': dict({
+            "name": "location",
+            "description": "The modem's location",
+            "codecServiceId": 0,
+            "codecMessageId": 72,
+            "fields": [
+                {
+                    "name": "fixStatus",
+                    "description": "Status of GNSS fix",
+                    "value": "VALID",
+                    "type": "enum"
+                },
+                {
+                    "name": "latitude",
+                    "description": "Latitude in 0.001 minutes",
+                    "value": 2717101,
+                    "type": "int"
+                },
+                {
+                    "name": "longitude",
+                    "description": "Longitude in 0.001 minutes",
+                    "value": -4550910,
+                    "type": "int"
+                },
+                {
+                    "name": "altitude",
+                    "description": "Altitude in meters",
+                    "value": 88,
+                    "type": "int"
+                },
+                {
+                    "name": "speed",
+                    "description": "Speed in km/h",
+                    "value": 2,
+                    "type": "uint"
+                },
+                {
+                    "name": "heading",
+                    "description": "Heading in 2-degree increments from North",
+                    "value": 82,
+                    "type": "uint"
+                },
+                {
+                    "name": "dayOfMonth",
+                    "value": 2,
+                    "type": "uint"
+                },
+                {
+                    "name": "minuteOfDay",
+                    "value": 1077,
+                    "type": "uint"
+                }
+            ]
+        })
+    },
+    'locationXmlCodec': {
+        'codec': os.path.join(os.getcwd(), 'secrets/nimomodem.idpmsg'),
         'raw_payload': [
             0,
             72,
@@ -1060,7 +1134,7 @@ def test_message_definitions_decode_message():
         if not test_inputs.get('exclude', False):
             test_codec = test_inputs.get('codec')
             data = bytes(test_inputs.get('raw_payload'))
-            res = decode_message(data, test_codec)
+            res = decode_message(data, test_codec, override_sin=True)
             expected: dict = test_inputs.get('decoded')
             if expected:
                 try:
@@ -1074,6 +1148,13 @@ def test_message_definitions_decode_message():
                             assert k in expected and expected[k] == v
             else:
                 assert True
+
+
+def test_mdf_import():
+    """"""
+    test_xml = os.path.join(os.getcwd(), 'tests/examples/XMLCodec.idpmsg')
+    msg_def = MessageDefinitions.from_mdf(test_xml)
+    assert isinstance(msg_def, MessageDefinitions)
 
 
 def test_rm_codec(return_message):

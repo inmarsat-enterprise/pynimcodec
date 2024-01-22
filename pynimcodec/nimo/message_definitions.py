@@ -5,6 +5,9 @@ import os
 
 from . import ET, XML_NAMESPACE
 from .services import ServiceCodec, Services
+from .messages import MessageCodec, Messages
+from .fields import EnumField, BooleanField, UnsignedIntField, SignedIntField,StringField,DataField,ArrayField
+from .fields.base_field import Fields, FieldCodec
 
 _log = logging.getLogger(__name__)
 
@@ -13,14 +16,66 @@ class MessageDefinitions:
     """A set of Message Definitions grouped into Services.
 
     Attributes:
-        services: The list of Services with Messages defined.
+        services (Services): A list of `ServiceCodec` with Messages defined.
+        name (str): (optional)
+        description (str): (optional)
+        version (str): (optional)
     
     """
-    def __init__(self, services: Services = None):
+    def __init__(self, services: Services = None, **kwargs):
         if services is not None:
             if not isinstance(services, Services):
                 raise ValueError('Invalid Services')
-        self.services = services or Services()
+        if isinstance(services, Services):
+            self._services = services
+        else:
+            self._services = Services()
+        supported_kwargs = ['name', 'description', 'version']
+        for k in supported_kwargs:
+            if k in kwargs:
+                setattr(self, f'_{k}', kwargs[k])
+            else:
+                setattr(self, f'_{k}', None)
+    
+    @property
+    def name(self) -> str:
+        return self._name
+    
+    @name.setter
+    def name(self, value: str):
+        if not isinstance(value, str) or not value:
+            raise ValueError('Invalid name')
+        self._name = value
+    
+    @property
+    def description(self) -> str:
+        return self._description
+    
+    @description.setter
+    def description(self, value: str):
+        if not isinstance(value, str) or not value:
+            raise ValueError('Invalid name')
+        self._description = value
+    
+    @property
+    def version(self) -> str:
+        return self._version
+    
+    @version.setter
+    def version(self, value: str):
+        if not isinstance(value, str) or not value:
+            raise ValueError('Invalid name')
+        self._version = value
+    
+    @property
+    def services(self) -> 'list[ServiceCodec]':
+        return self._services
+    
+    @services.setter
+    def services(self, services: Services):
+        if not isinstance(services, Services):
+            raise ValueError('Invalid Services object')
+        self._services = services
     
     def xml(self) -> ET.ElementTree:
         """Gets the XML structure of the complete message definitions."""
@@ -66,14 +121,110 @@ class MessageDefinitions:
         with open(filename, 'wb') as f:
             tree.write(f, encoding='utf-8', xml_declaration=True)
     
-    def json(self) -> dict:
+    @classmethod
+    def _parse_xml_field(cls, field: ET.Element) -> FieldCodec:
+        f_type = field.attrib[f'{{{XML_NAMESPACE["xsi"]}}}type']
+        f_name = field.find('Name').text
+        f_kwargs = {}
+        xml_tags = ['Size', 'Description', 'Optional', 'Fixed', 'Default']
+        for xml_tag in xml_tags:
+            e = field.find(xml_tag)
+            if e is not None:
+                val = e.text
+                k_tag = xml_tag.lower()
+                if k_tag in ['size']:
+                    val = int(val)
+                elif k_tag in ['optional', 'fixed']:
+                    val = bool(val)
+                f_kwargs[k_tag] = val
+        if f_type == 'BooleanField':
+            f_codec = BooleanField(f_name, **f_kwargs)
+        elif f_type == 'EnumField':
+            xml_items = field.find('Items')
+            items = [i.text for i in xml_items.findall('string')]
+            f_codec = EnumField(f_name, items, **f_kwargs)
+        elif f_type == 'UnsignedIntField':
+            if 'default' in f_kwargs:
+                f_kwargs['default'] = int(f_kwargs['default'])
+            f_codec = UnsignedIntField(f_name, **f_kwargs)
+        elif f_type == 'SignedIntField':
+            if 'default' in f_kwargs:
+                f_kwargs['default'] = int(f_kwargs['default'])
+            f_codec = SignedIntField(f_name, **f_kwargs)
+        elif f_type == 'StringField':
+            f_codec = StringField(f_name, **f_kwargs)
+        elif f_type == 'DataField':
+            f_codec = DataField(f_name, **f_kwargs)
+        elif f_type == 'ArrayField':
+            array_fields = Fields()
+            xml_fields = field.find('Fields')
+            for xml_array_field in xml_fields.findall('Field'):
+                array_fields.add(cls._parse_xml_field(xml_array_field))
+            f_codec = ArrayField(f_name, array_fields, **f_kwargs)
+        else:
+            raise ValueError(f'Invalid field type {f_type}')
+        return f_codec
+    
+    @classmethod
+    def from_mdf(cls, filename: str, **kwargs):
+        """Creates a class instance from a XML message definition file."""
+        services = Services()
+        tree = ET.parse(filename)
+        root = tree.getroot()
+        for service in root.iter('Service'):
+            sin = int(service.find('SIN').text)
+            override_sin = kwargs.get('override_sin', False)
+            svc_codec = ServiceCodec(service.find('Name').text, sin,
+                                     override_sin=override_sin)
+            msg_types: 'list[str]' = ['ReturnMessages', 'ForwardMessages']
+            for msg_type in msg_types:
+                msg_defs = service.find(msg_type)
+                if msg_defs is not None:
+                    msg_codecs = Messages(sin, msg_type.startswith('Forward'))
+                    for msg_def in msg_defs.findall('Message'):
+                        kwargs = { 'override_sin': override_sin }
+                        xml_kwargs = ['Description']
+                        for xml_kwarg in xml_kwargs:
+                            found = msg_def.find(xml_kwarg)
+                            if found is not None:
+                                kwargs[xml_kwarg.lower()] = found.text
+                        msg_codec = MessageCodec(
+                            msg_def.find('Name').text,
+                            sin,
+                            int(msg_def.find('MIN').text),
+                            **kwargs,
+                        )
+                        msg_fields = Fields()
+                        xml_fields = msg_def.find('Fields')
+                        for field in xml_fields.findall('Field'):
+                            msg_fields.add(cls._parse_xml_field(field))
+                        msg_codec.fields = msg_fields
+                        msg_codecs.add(msg_codec)
+                    if msg_type.startswith('Return'):
+                        svc_codec.messages_return = msg_codecs
+                    else:
+                        svc_codec.messages_forward = msg_codecs
+            services.add(svc_codec)
+        return cls(services)
+    
+    def json(self) -> OrderedDict:
+        """Creates a JSON-based definition."""
+        msg_def = OrderedDict({'services': [s.json() for s in self.services]})
+        for attr in ['version', 'description', 'name']:
+            if hasattr(self, attr) and getattr(self, attr):
+                msg_def[attr] = getattr(self, attr)
+                msg_def.move_to_end(attr, last=False)
+        return { 'nimoMessageDefinition': msg_def }
+    
+    def json_export(self, filename: str, indent: 'int|None' = 2) -> dict:
         """Converts the message definition to a JSON structured dictionary"""
+        with open(filename, 'wb') as f:
+            json.dump(self.json(), f, indent=indent)
+    
+    @classmethod
+    def from_json(cls, filename: str):
+        """Creates a class instance from a JSON message definition file."""
         raise NotImplementedError
-        return {
-            'nimoMessageDefinition': {
-                'services': [s.json() for s in self.services]
-            }
-        }
 
 
 def extract_bits(data: bytes, offset: int, length: int) -> int:
@@ -217,7 +368,7 @@ def parse_array_field(field: dict, data: bytes, offset: int) -> 'tuple[dict, int
 def decode_message(data: bytes,
                    codec_path: str,
                    mobile_originated: bool = True,
-                   ) -> dict:
+                   **kwargs) -> dict:
     """Decodes a message using the codec specified."""
     if not isinstance(data, (bytes, bytearray)):
         raise ValueError('Invalid data bytes')
@@ -228,15 +379,18 @@ def decode_message(data: bytes,
     codec_min = data[1]
     decoded = {}
     try:
-        codec = ET.parse(codec_path)
+        if codec_path.endswith(('.idpmsg', '.xml')):
+            override_sin = kwargs.get('override_sin', False)
+            md: MessageDefinitions = MessageDefinitions.from_mdf(
+                codec_path, override_sin=override_sin
+            )
+            codec = md.json()
     except ET.ParseError:
         try:
            with open(codec_path) as f:
                codec = json.load(f, object_pairs_hook=OrderedDict)
         except json.JSONDecodeError:
             raise ValueError('Unable to parse codec %s', codec_path)
-    if isinstance(codec, ET.ElementTree):
-        raise NotImplementedError
     assert isinstance(codec, dict)
     msgdef: dict = codec.get('nimoMessageDefinition')
     services: 'list[dict]' = msgdef.get('services')

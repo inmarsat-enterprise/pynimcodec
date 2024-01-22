@@ -2,10 +2,11 @@
 """
 class BaseCodec:
     def __init__(self, name: str, description: str = None) -> None:
-        if not name or name.strip() == '':
-            raise ValueError('Invalid name must be non-empty')
+        if not isinstance(name, str) or name.strip() == '':
+            raise ValueError('Invalid name must be non-empty string')
         self._name = name
-        self._description = description
+        self._description = None
+        self.description = description   # validates value
     
     @property
     def name(self) -> str:
@@ -44,10 +45,10 @@ class CodecList(list):
     Used for Fields, Messages, Services.
 
     Attributes:
-        codec_cls: The object type the list is comprised of.
+        list_type: The object type the list is comprised of.
 
     """
-    def __init__(self, codec_cls: BaseCodec):
+    def __init__(self, codec_cls: BaseCodec) -> 'list[BaseCodec]':
         super().__init__()
         self.list_type = codec_cls
 

@@ -5,61 +5,49 @@ from .helpers import optimal_bits
 
 class EnumField(FieldCodec):
     """An enumerated field sends an index over-the-air representing a string."""
-    def __init__(self,
-                 name: str,
-                 items: 'list[str]',
-                 size: int,
-                 description: str = None,
-                 optional: bool = False,
-                 default: int = None,
-                 value: int = None) -> None:
+    def __init__(self, name: str, items: 'list[str]', size: int, **kwargs):
         """Instantiates a EnumField.
         
         Args:
-            name: The field name must be unique within a Message.
-            items: A list of strings (indexed from 0).
-            size: The number of *bits* used to encode the index over-the-air.
-            description: An optional description/purpose for the field.
-            optional: Indicates if the field is optional in the Message.
-            default: A default value for the enum.
-            value: Optional value to set during initialization.
+            name (str): The field name must be unique within a Message.
+            items (list): A list of strings (indexed from 0).
+            size (int): The number of *bits* used to encode over-the-air.
+        
+        Keyword Args:
+            description (str): An optional description/purpose for the field.
+            optional (bool): Indicates if the field is optional in the Message.
+            default (str): A default value for the enum.
+            value (str): Optional value to set during initialization.
 
+        Raises:
+            ValueError if items is not a valid list of strings or if the size
+                specified is insufficient for the number of items.
+            
         """
-        super().__init__(name=name,
-                         data_type='enum',
-                         description=description,
-                         optional=optional)
-        if (not isinstance(items, list) or
+        if (not isinstance(items, list) or not items or
             not all(isinstance(item, str) for item in items)):
-            raise ValueError('Items must a list of strings')
-        self._items = items
+            raise ValueError('Items must a non-empty list of strings')
         min_size = 1 if len(items) <= 1 else optimal_bits((0, len(items) - 1))
         if not isinstance(size, int) or size < min_size:
             raise ValueError(f'Size must be integer greater than {min_size}')
+        super().__init__(name=name,
+                         data_type='enum',
+                         description=kwargs.get('description', None),
+                         optional=kwargs.get('optional', None))
+        self._items = items
         self._size = size
-        if default is not None:
-            if isinstance(default, str):
-                if default not in items:
-                    raise ValueError(f'{default} not found in items')
-                self._default = items.index(default)
-            elif isinstance(default, int):
-                if default not in range(0, len(items)):
-                    raise ValueError('Invalid default not in range of items')
-                self._default = default
-        else:
-            self._default = None
-        if value is not None:
-            if value not in items:
-                raise ValueError(f'{value} not in items')
-            self._value = value
-        else:
-            self._value = None
+        self._default = None
+        self._value = None
+        supported_kwargs = ['default', 'value']
+        for k, v in kwargs.items():
+            if k in supported_kwargs and hasattr(self, k):
+                setattr(self, k, v)
     
     def _validate_enum(self, v: 'int|str') -> 'int|None':
         if v is not None:
             if isinstance(v, str):
                 if v not in self.items:
-                    raise ValueError(f'Invalid value {v}')
+                    raise ValueError(f'Invalid value {v} not in items')
                 for index, item in enumerate(self.items):
                     if item == v:
                         return index
@@ -144,16 +132,17 @@ class EnumField(FieldCodec):
         return self.size
 
     def xml(self) -> ET.Element:
-        """Returns the Enum XML definition for a Message Definition File."""
+        """The EnumField XML definition."""
         # Size must come after Items for Inmarsat V1 parser
-        xmlfield = self._base_xml()
+        xmlfield = super().xml()
         items = ET.SubElement(xmlfield, 'Items')
         for string in self.items:
             item = ET.SubElement(items, 'string')
             item.text = str(string)
-        if self.default:
-            default = ET.SubElement(xmlfield, 'Default')
-            default.text = str(self.default)
-        size = ET.SubElement(xmlfield, 'Size')
-        size.text = str(self.size)
-        return xmlfield
+        return super()._xml_flex_tags(['Size', 'Default'])
+    
+    def json(self) -> dict:
+        """The EnumField JSON definition."""
+        field = super().json(['size', 'default'])
+        field['items'] = [str(i) for i in self.items]
+        return field      

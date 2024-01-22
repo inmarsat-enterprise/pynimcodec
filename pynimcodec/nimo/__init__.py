@@ -1,6 +1,6 @@
 import xml.etree.ElementTree as ET
 
-from .constants import XML_NAMESPACE, DataFormat, DATA_TYPES, SIN_RANGE
+from .constants import XML_NAMESPACE, DataFormat, DATA_TYPES, SIN_RANGE, FIELD_TYPES_JSON
 from .fields import (ArrayField, BooleanField, DataField, EnumField,
                      SignedIntField, StringField, UnsignedIntField)
 from .fields.base_field import FieldCodec, Fields
@@ -10,6 +10,8 @@ from .messages import MessageCodec, Messages
 from .services import ServiceCodec, Services
 
 __all__ = [
+    'ET',
+    'XML_NAMESPACE',
     'ArrayField',
     'BooleanField',
     'DataField',
@@ -30,7 +32,5 @@ __all__ = [
     'Services',
     'optimal_bits',
     'decode_message',
+    'FIELD_TYPES_JSON',
 ]
-
-# for ns in XML_NAMESPACE:
-#     ET.register_namespace(ns, XML_NAMESPACE[ns])

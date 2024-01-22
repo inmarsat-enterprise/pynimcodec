@@ -1,4 +1,4 @@
-from .. import DATA_TYPES, XML_NAMESPACE, ET
+from .. import DATA_TYPES, XML_NAMESPACE, ET, FIELD_TYPES_JSON
 from ..base import BaseCodec, CodecList
 
 
@@ -12,25 +12,29 @@ class FieldCodec(BaseCodec):
         optional (bool): Optional indication the field is optional.
 
     """
-    def __init__(self,
-                 name: str,
-                 data_type: str,
-                 description: str = None,
-                 optional: bool = False) -> None:
+    def __init__(self, name: str, data_type: str, **kwargs):
         """Instantiates the base field.
         
         Args:
             name: The field name must be unique within a Message.
             data_type: The data type represented within the field.
+        
+        Keyword Args:
             description: (Optional) Description/purpose of the field.
             optional: (Optional) Indicates if the field is mandatory.
             
         """
-        super().__init__(name, description)
         if data_type not in DATA_TYPES:
             raise ValueError(f'Invalid data type {data_type}')
+        super().__init__(name, kwargs.get('description', None))
         self._data_type = data_type
-        self._optional = optional
+        self._optional = None
+        self.optional = kwargs.get('optional', None)
+    
+    @classmethod
+    def _is_valid_type(cls, data_type: str) -> bool:
+        """"""
+        return data_type in DATA_TYPES and DATA_TYPES[data_type] == cls.__name__
     
     @property
     def data_type(self) -> str:
@@ -42,8 +46,8 @@ class FieldCodec(BaseCodec):
     
     @optional.setter
     def optional(self, value: bool):
-        if not value or not isinstance(value, bool):
-            value = False
+        if value is not None and not isinstance(value, bool):
+            raise ValueError('Invalid optional value must be bool or None')
         self._optional = value
 
     @property
@@ -61,23 +65,40 @@ class FieldCodec(BaseCodec):
                 rep[name] = attr
         return repr(rep)
     
-    def _base_xml(self) -> ET.Element:
+    def _xml_flex_tags(self, tags: 'list[str]', xmlfield: ET.Element):
+        """Adds XML tags to a field if present."""
+        for tag in tags:
+            attr = tag.lower()
+            if hasattr(self, attr) and getattr(self, attr) is not None:
+                sub = ET.SubElement(xmlfield, tag)
+                sub.text = str(getattr(self, attr))
+                if isinstance(getattr(self, attr), bool):
+                    sub.text = sub.text.lower()
+        return xmlfield
+    
+    def xml(self, tags: 'list[str]' = []) -> ET.Element:
         """The default XML template for a Field."""
         xsi_type = DATA_TYPES[self.data_type]
         attrib = { f'{{{XML_NAMESPACE["xsi"]}}}type': xsi_type}
-        # xmlfield = ET.Element('Field', attrib={
-        #     '{http://www.w3.org/2001/XMLSchema-instance}type': xsi_type
-        # })
         xmlfield = ET.Element('Field', attrib)
-        name = ET.SubElement(xmlfield, 'Name')
-        name.text = self.name
-        if self.description:
-            description = ET.SubElement(xmlfield, 'Description')
-            description.text = str(self.description)
-        if self.optional:
-            optional = ET.SubElement(xmlfield, 'Optional')
-            optional.text = 'true'
-        return xmlfield
+        common_tags = ['Name', 'Description', 'Optional']
+        tags = common_tags + list(set(tags) - set(common_tags))
+        return self._xml_flex_tags(tags, xmlfield)
+    
+    def _json_flex_tags(self, tags: 'list[str]', json_field: dict) -> dict:
+        """Adds JSON tags to a field if present."""
+        for tag in tags:
+            tag = tag.lower()
+            if hasattr(self, tag) and getattr(self, tag) is not None:
+                json_field[tag] = getattr(self, tag)
+        return json_field
+    
+    def json(self, tags: 'list[str]' = []) -> dict:
+        """The default JSON template for a Field."""
+        field_json = { 'type': FIELD_TYPES_JSON[self.__class__.__name__] }
+        common_tags = ['name', 'description', 'optional']
+        tags = common_tags + list(set(tags) - set(common_tags))
+        return self._json_flex_tags(tags, field_json)
     
     def decode(self, *args, **kwargs):
         """Must be subclassed."""
@@ -86,15 +107,11 @@ class FieldCodec(BaseCodec):
     def encode(self, *args, **kwargs):
         """Must be subclassed."""
         raise NotImplementedError('Subclass must define encode')
-    
-    def xml(self, *args, **kwargs):
-        """Must be subclassed."""
-        raise NotImplementedError('Subclass must define xml structure')
 
 
 class Fields(CodecList):
     """The list of Fields defining a Message or ArrayElement."""
-    def __init__(self, fields: 'list[FieldCodec]' = None):
+    def __init__(self, fields: 'list[FieldCodec]' = None) -> 'list[FieldCodec]':
         super().__init__(codec_cls=FieldCodec)
         if fields is not None:
             for field in fields:

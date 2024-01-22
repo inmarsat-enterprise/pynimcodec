@@ -19,35 +19,44 @@ class ServiceCodec(BaseCodec):
     def __init__(self,
                  name: str,
                  sin: int,
-                 description: str = None,
-                 messages_forward: Messages = None,
-                 messages_return: Messages = None) -> None:
+                 **kwargs) -> None:
         """Instantiates a Service made up of Messages.
         
         Args:
             name: The service name should be unique within a MessageDefinitions
             sin: The Service Identification Number (16..255)
+        
+        Keyword Args:
             description: (Optional)
+            messages_forward (Messages): List for mobile-terminated
+            messages_return (Messages): List for mobile-originated
+        
         """
         if not isinstance(name, str) or name == '':
             raise ValueError(f'Invalid service name {name}')
         if sin not in range(16, 256):
-            raise ValueError('Invalid SIN must be 16..255')
+            if not(sin == 0 and kwargs.get('override_sin', True)):
+                raise ValueError('Invalid SIN must be 16..255')
+        description = kwargs.get('description', None)
         if description is not None:
             warn('Service Description not currently supported')
         super().__init__(name, description)
         self._sin = sin
-        self._messages_forward = (messages_forward or
-                                  Messages(self.sin, is_forward=True))
-        self._messages_return = (messages_return or
-                                 Messages(self.sin, is_forward=False))
+        for kwarg in ['messages_forward', 'messages_return']:
+            attr = f'_{kwarg}'
+            is_forward = 'forward' in kwarg
+            messages = kwargs.get(kwarg, None)
+            if messages and isinstance(messages, Messages):
+                setattr(self, attr, messages)
+            else:
+                setattr(self, attr, Messages(self.sin, is_forward))
     
     @property
     def sin(self) -> int:
         return self._sin
     
     @property
-    def messages_forward(self) -> Messages:
+    def messages_forward(self) -> 'list[MessageCodec]':
         return self._messages_forward
     
     @messages_forward.setter
@@ -61,7 +70,7 @@ class ServiceCodec(BaseCodec):
         self._messages_forward = messages
 
     @property
-    def messages_return(self) -> Messages:
+    def messages_return(self) -> 'list[MessageCodec]':
         return self._messages_return
     
     @messages_return.setter
@@ -95,6 +104,22 @@ class ServiceCodec(BaseCodec):
             for m in self.messages_return:
                 return_messages.append(m.xml())
         return xservice
+    
+    def json(self) -> dict:
+        """Returns the service JSON definition."""
+        svc = { 'name': self.name, 'codecServiceId': self.sin }
+        optional_tags = ['description']
+        for tag in optional_tags:
+            if hasattr(self, tag) and getattr(self, tag):
+                svc[tag] = getattr(self, tag)
+        for messages in [self.messages_forward, self.messages_return]:
+            if len(messages) > 0:
+                json_messages = [m.json() for m in messages]
+                tag = 'mobileTerminatedMessages'
+                if messages == self.messages_return:
+                    tag = tag.replace('Terminated', 'Originated')
+                svc[tag] = json_messages
+        return svc
 
 
 class Services(CodecList):

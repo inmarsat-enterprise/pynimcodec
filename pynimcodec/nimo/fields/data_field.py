@@ -1,7 +1,7 @@
 from struct import pack, unpack
 from warnings import warn
 
-from .. import ET
+from .. import ET, DATA_TYPES
 from .base_field import FieldCodec
 from .helpers import decode_field_length, encode_field_length
 
@@ -12,24 +12,17 @@ class DataField(FieldCodec):
     Can also be used to hold floating point, double-precision or large integers.
 
     """
-    SUPPORTED_DATA_TYPES = ['data', 'float', 'double']
-    def __init__(self,
-                 name: str,
-                 size: int,
-                 data_type: str = 'data',
-                 precision: int = None,
-                 description: str = None,
-                 optional: bool = False,
-                 fixed: bool = False,
-                 default: bytes = None,
-                 value: bytes = None) -> None:
+    # SUPPORTED_DATA_TYPES = ['data', 'float', 'double']
+    def __init__(self, name: str, size: int, **kwargs):
         """Instantiates a EnumField.
         
         Args:
-            name: The field name must be unique within a Message.
-            size: The maximum number of bytes to send over-the-air.
-            data_type: The data type represented within the bytes.
-            precision: The number of decimal places for float/double.
+            name (str): The field name must be unique within a Message.
+            size (int): The maximum number of bytes to send over-the-air.
+        
+        Keyword Args:
+            data_type (str): The data type represented within the bytes.
+            precision (int): The number of decimal places for float/double.
             description: An optional description/purpose for the field.
             optional: Indicates if the field is optional in the Message.
             fixed: Indicates if the data bytes are a fixed `size`.
@@ -37,21 +30,24 @@ class DataField(FieldCodec):
             value: Optional value to set during initialization.
 
         """
-        if data_type is None or data_type not in self.SUPPORTED_DATA_TYPES:
+        data_type = kwargs.pop('data_type', 'data')
+        # if data_type is None or data_type not in self.SUPPORTED_DATA_TYPES:
+        if not DataField._is_valid_type(data_type):
             raise ValueError(f'Invalid data type {data_type}')
         super().__init__(name=name,
                          data_type=data_type,
-                         description=description,
-                         optional=optional)
-        self._fixed = fixed
+                         description=kwargs.pop('description', None),
+                         optional=kwargs.pop('optional', None))
         self._size = None
+        self.size = size   # validates combinations
+        self._fixed = None
         self._default = None
-        self._precision = None
         self._value = None
-        self.precision = precision
-        self.size = size
-        self.default = default
-        self.value = value
+        self._precision = None
+        supported_kwargs = ['fixed', 'default', 'value', 'precision']
+        for k, v in kwargs.items():
+            if k in supported_kwargs and hasattr(self, k):
+                setattr(self, k, v)
     
     @property
     def size(self) -> int:
@@ -125,9 +121,10 @@ class DataField(FieldCodec):
     @precision.setter
     def precision(self, value: 'int|None'):
         if self.data_type in ['float', 'double']:
-            if value is not None and not isinstance(value, int):
-                raise ValueError('Precision must be int or None'
-                                 ' for float/double data_type')
+            if (value is not None and
+                (not isinstance(value, int) or value < 0)):
+                err = 'Precision must be int or None for float/double data_type'
+                raise ValueError(err)
         elif value is not None:
             raise ValueError('Precision only valid for float/double data_type')
         self._precision = value
@@ -198,11 +195,9 @@ class DataField(FieldCodec):
         return self.bits
 
     def xml(self) -> ET.Element:
-        """Returns the Data XML definition for a Message Definition File."""
-        xmlfield = self._base_xml()
-        size = ET.SubElement(xmlfield, 'Size')
-        size.text = str(self.size)
-        if self.default:
-            default = ET.SubElement(xmlfield, 'Default')
-            default.text = str(self.default)
-        return xmlfield
+        """The DataField XML definition."""
+        return super().xml(['Size', 'Default'])
+    
+    def json(self) -> dict:
+        """The DataField JSON definition."""
+        return super().json(['size', 'default'])

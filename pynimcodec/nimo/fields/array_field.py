@@ -18,34 +18,42 @@ class ArrayField(FieldCodec):
         elements (list): The enumerated list of ArrayElements
 
     """
-    def __init__(self,
-                 name: str,
-                 size: int,
-                 fields: Fields,
-                 description: str = None,
-                 optional: bool = False,
-                 fixed: bool = False,
-                 elements: 'list[Fields]' = []) -> None:
+    def __init__(self, name: str, fields: Fields, size: int, **kwargs):
         """Initializes an ArrayField instance.
         
         Args:
-            name: The unique field name within the Message.
-            size: The maximum number of elements allowed.
-            fields: The list of Field types comprising each element.
-            description: An optional description/purpose of the array.
-            optional: Indicates if the array is optional in the Message.
-            fixed: Indicates if the array is always the fixed `size`.
-            elements: Option to populate elements of Fields during instantiation.
+            name (str): The unique field name within the Message.
+            fields (list): The FieldCodec (columns) comprising each element.
+            size (int): The maximum number of elements (rows) allowed.
+        
+        Keyword Args:
+            description (str): An optional description/purpose of the array.
+            optional (bool): Indicates if the array is optional in the Message.
+            fixed (bool): Indicates if the array is always the fixed `size`.
+            elements (list): Optional elements to populate during instantiation.
 
+        Raises:
+            ValueError if fields or array size is invalid.
+            
         """
+        if (not isinstance(fields, Fields) or
+            not (isinstance(fields, list) and
+                 all(isinstance(x, FieldCodec) for x in fields))):
+            raise ValueError('Invalid fields')
+        if not isinstance(size, int) or size < 1:
+            raise ValueError('Invalid array size')
         super().__init__(name=name,
                          data_type='array',
-                         description=description,
-                         optional=optional)
+                         description=kwargs.pop('description', None),
+                         optional=kwargs.pop('optional', None))
         self._size = size
-        self._fixed = fixed
-        self._fields = fields
-        self._elements = elements or []
+        self._fields = None
+        self.fields = fields or Fields()
+        self._fixed = None
+        self.fixed = kwargs.pop('fixed', None)
+        self._elements = []
+        if 'elements' in kwargs:
+            self.elements = kwargs.pop('elements')
     
     @property
     def size(self) -> int:
@@ -62,15 +70,23 @@ class ArrayField(FieldCodec):
     def fixed(self) -> bool:
         """Indicates if the array is a fixed size (padded with defaults)."""
         return self._fixed
+    
+    @fixed.setter
+    def fixed(self, value: bool):
+        if value is not None and not isinstance(value, bool):
+            raise ValueError('Invalid fixed value must be boolean or None')
+        self._fixed = value
 
     @property
-    def fields(self) -> Fields:
-        """The set of `FieldCodec`s that make up each array element."""
+    def fields(self) -> 'list[FieldCodec]':
+        """The set of `FieldCodec` that make up each array element."""
         return self._fields
 
     @fields.setter
     def fields(self, fields: Fields):
-        if not isinstance(fields, Fields):
+        if (not isinstance(fields, Fields) or
+            not (isinstance(fields, list) and
+                 all(isinstance(x, FieldCodec) for x in fields))):
             raise ValueError('Invalid Fields definition for ArrayField')
         self._fields = fields
 
@@ -208,14 +224,15 @@ class ArrayField(FieldCodec):
     def xml(self) -> ET.Element:
         """Returns the Array XML definition for a Message Definition File."""
         # Size must come after Fields for Inmarsat V1 parser
-        xmlfield = self._base_xml()
-        if self.fixed:
-            default = ET.SubElement(xmlfield, 'Fixed')
-            default.text = 'true'
+        xmlfield = super().xml()
         fields = ET.SubElement(xmlfield, 'Fields')
         for field in self.fields:
-            assert isinstance(field, FieldCodec)
             fields.append(field.xml())
-        size = ET.SubElement(xmlfield, 'Size')
-        size.text = str(self.size)
-        return xmlfield
+        flex_tags = ['Size', 'Fixed']
+        return super()._xml_flex_tags(flex_tags, xmlfield)
+    
+    def json(self) -> dict:
+        """Get the array field JSON definition."""
+        field = super().json(['size', 'fixed'])
+        field['fields'] = [f.json() for f in self.fields]
+        return field
