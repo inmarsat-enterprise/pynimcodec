@@ -85,7 +85,7 @@ def data_field_float() -> DataField:
                     data_type: str = 'float',
                     precision: int = None,
                     optional: bool = False,
-                    fixed: bool = False,
+                    fixed: bool = True,
                     default: bytes = None,
                     value: float = None):
         return DataField(name='dataFixture',
@@ -356,7 +356,8 @@ def test_data_field_double(data_field_double):
     test_value = 1.7976931348623158e+308
     precision = None
     test_field: DataField = data_field_double(precision=precision,
-                                              value=test_value)
+                                              value=test_value,
+                                              fixed=True)
     assert test_field.size == 8
     assert test_field.fixed
     assert len(test_field.value) == 8
@@ -603,7 +604,7 @@ def test_mdf_xml(message_definitions: MessageDefinitions):
 
 DECODE_TEST_CASES = {
     'locationJsonCodec': {
-        'codec': os.path.join(os.getcwd(), 'secrets/nimomodem.json'),
+        'codec': os.path.join(os.getcwd(), 'tests/examples/jsonCodec.json'),
         'raw_payload': [
             0,
             72,
@@ -677,7 +678,7 @@ DECODE_TEST_CASES = {
         })
     },
     'locationXmlCodec': {
-        'codec': os.path.join(os.getcwd(), 'secrets/nimomodem.idpmsg'),
+        'codec': os.path.join(os.getcwd(), 'tests/examples/XMLCodec.idpmsg'),
         'raw_payload': [
             0,
             72,
@@ -751,7 +752,7 @@ DECODE_TEST_CASES = {
         })
     },
     'rlSysConfig': {
-        'codec': os.path.join(os.getcwd(), 'secrets/nimomodem.json'),
+        'codec': os.path.join(os.getcwd(), 'tests/examples/jsonCodec.json'),
         'raw_payload': [
             0,
             135,

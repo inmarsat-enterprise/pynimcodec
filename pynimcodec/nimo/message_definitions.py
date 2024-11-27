@@ -379,7 +379,7 @@ def decode_message(data: bytes,
     codec_min = data[1]
     decoded = {}
     try:
-        if codec_path.endswith(('.idpmsg', '.xml')):
+        if codec_path.endswith(('.idpmsg', '.xml', '.json')):
             override_sin = kwargs.get('override_sin', False)
             md: MessageDefinitions = MessageDefinitions.from_mdf(
                 codec_path, override_sin=override_sin

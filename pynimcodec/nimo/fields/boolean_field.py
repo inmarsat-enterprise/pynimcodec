@@ -53,7 +53,9 @@ class BooleanField(FieldCodec):
     
     def encode(self) -> str:
         """Returns the binary string of the field value."""
-        if self.value is None and not self.optional:
+        if self.value is None and self.default is not None:
+            return '1' if self.default else '0'
+        elif self.value is None and not self.optional:
             raise ValueError('No value assigned to field')
         return '1' if self.value else '0'
 

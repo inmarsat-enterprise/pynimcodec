@@ -81,8 +81,8 @@ class StringField(FieldCodec):
     
     @fixed.setter
     def fixed(self, value: bool):
-        if value is not None or not isinstance(value, bool):
-            raise ValueError('Invalid fixed setting')
+        if value is not None and not isinstance(value, bool):
+            raise ValueError('Invalid fixed value must be boolean or None')
         self._fixed = value
 
     @property
@@ -138,4 +138,4 @@ class StringField(FieldCodec):
     
     def json(self) -> dict:
         """The StringField JSON definition."""
-        return super().json(['Size', 'Fixed', 'Default'])
+        return super().json(['size', 'fixed', 'default'])

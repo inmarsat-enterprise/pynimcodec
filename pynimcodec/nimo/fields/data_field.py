@@ -150,7 +150,13 @@ class DataField(FieldCodec):
     def fixed(self) -> bool:
         """Indicates if the field is fixed size (padded/truncated)."""
         return self._fixed
-
+    
+    @fixed.setter
+    def fixed(self, value: bool):
+        if value is not None and not isinstance(value, bool):
+            raise ValueError('Invalid fixed value must be boolean or None')
+        self._fixed = value
+        
     @property
     def bits(self):
         """The size of the field in bits."""
