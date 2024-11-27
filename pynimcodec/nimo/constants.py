@@ -37,6 +37,7 @@ FIELD_TYPES_JSON = {
     'ArrayField': 'arrayField',
     'SignedIntField': 'intField',
     'UnsignedIntField': 'uintField',
+    'StringField': 'stringField',
 }
 
 SIN_RANGE = (16, 255)
