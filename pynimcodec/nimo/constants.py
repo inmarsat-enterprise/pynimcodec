@@ -28,6 +28,7 @@ DATA_TYPES = {
     'data': 'DataField',
     'enum': 'EnumField',
     'array': 'ArrayField',
+    'bml': 'BitmaskListField',
 }
 
 FIELD_TYPES_JSON = {
@@ -38,6 +39,7 @@ FIELD_TYPES_JSON = {
     'SignedIntField': 'intField',
     'UnsignedIntField': 'uintField',
     'StringField': 'stringField',
+    'BitmaskListField': 'bmlField',
 }
 
 SIN_RANGE = (16, 255)

@@ -1,13 +1,23 @@
-from collections import OrderedDict
-import logging
+"""Utilities for processing a Message Definitions collection of Services."""
 import json
+import logging
 import os
+from collections import OrderedDict
 
 from . import ET, XML_NAMESPACE
-from .services import ServiceCodec, Services
+from .fields import (
+    ArrayField,
+    BitmaskListField,
+    BooleanField,
+    DataField,
+    EnumField,
+    SignedIntField,
+    StringField,
+    UnsignedIntField,
+)
+from .fields.base_field import FieldCodec, Fields
 from .messages import MessageCodec, Messages
-from .fields import EnumField, BooleanField, UnsignedIntField, SignedIntField,StringField,DataField,ArrayField
-from .fields.base_field import Fields, FieldCodec
+from .services import ServiceCodec, Services
 
 _log = logging.getLogger(__name__)
 
@@ -161,6 +171,15 @@ class MessageDefinitions:
             for xml_array_field in xml_fields.findall('Field'):
                 array_fields.add(cls._parse_xml_field(xml_array_field))
             f_codec = ArrayField(f_name, array_fields, **f_kwargs)
+        elif f_type == 'BitmaskListField':
+            xml_items = field.find('Items')
+            items = [i.text for i in xml_items.findall('string')]
+            array_fields = Fields()
+            xml_fields = field.find('Fields')
+            for xml_array_field in xml_fields.findall('Field'):
+                array_fields.add(cls._parse_xml_field(xml_array_field))
+            f_kwargs['fields'] = array_fields
+            f_codec = BitmaskListField(f_name, items, **f_kwargs)
         else:
             raise ValueError(f'Invalid field type {f_type}')
         return f_codec
@@ -182,7 +201,10 @@ class MessageDefinitions:
                 if msg_defs is not None:
                     msg_codecs = Messages(sin, msg_type.startswith('Forward'))
                     for msg_def in msg_defs.findall('Message'):
-                        kwargs = { 'override_sin': override_sin }
+                        kwargs = {
+                            'is_forward': 'Forward' in msg_type,
+                            'override_sin': override_sin,
+                        }
                         xml_kwargs = ['Description']
                         for xml_kwarg in xml_kwargs:
                             found = msg_def.find(xml_kwarg)
