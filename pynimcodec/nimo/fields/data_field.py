@@ -160,13 +160,13 @@ class DataField(FieldCodec):
     @property
     def bits(self):
         """The size of the field in bits."""
-        if self._value is None:
+        if self.value is None:
             bits = 0
         elif self.fixed:
             bits = self.size * 8
         else:
-            L = 8 if len(self._value) < 127 else 16
-            bits = L + len(self._value) * 8
+            L = 8 if len(self.value) < 128 else 16
+            bits = L + len(self.value) * 8
         return bits + (1 if self.optional else 0)
     
     def encode(self) -> str:

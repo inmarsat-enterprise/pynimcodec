@@ -477,6 +477,7 @@ def test_data_field_data(data_field_data):
         b = [i % 255] * max(1, i)
         test_field.value = bytes(b)
         enc = test_field.encode()
+        assert test_field.bits == len(enc)
         bits = len(enc)
         L = enc[:16] if i > 127 else enc[:8]
         data_bin = enc[len(L):]
@@ -534,6 +535,7 @@ def test_array_field(array_field, array_element_fields_example):
         enc = test_field.encode()
         L = enc[:16] if i > 127 else enc[:8]
         assert(len(test_field.elements) == int('0b' + L, 2))
+        assert test_field.bits == len(enc)
         test_field.decode(enc)
         assert(test_field == ref)
 

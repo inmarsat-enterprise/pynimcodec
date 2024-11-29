@@ -129,6 +129,9 @@ class ArrayField(FieldCodec):
         for field in self.fields:
             assert isinstance(field, FieldCodec)
             bits += field.bits
+        bits *= len(self.elements)
+        if not self.fixed:
+            bits += 8 if self.size < 128 else 16
         return bits + (1 if self.optional else 0)
     
     def _valid_element(self, element: Fields) -> bool:

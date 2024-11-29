@@ -2,7 +2,7 @@ from copy import deepcopy
 
 from .. import ET
 from .base_field import FieldCodec, Fields
-from .helpers import optimal_bits, encode_field_length
+from .helpers import optimal_bits
 
 
 class BitmaskListField(FieldCodec):
@@ -66,10 +66,11 @@ class BitmaskListField(FieldCodec):
         return self._items
     
     @items.setter
-    def items(self, l: list):
-        if not isinstance(l, list) or not all(isinstance(x, str) for x in l):
+    def items(self, items: list):
+        if (not isinstance(items, list) or
+            not all(isinstance(x, str) for x in items)):
             raise ValueError('Items must be a list of strings')
-        self._items = l
+        self._items = items
 
     @property
     def value(self) -> int:

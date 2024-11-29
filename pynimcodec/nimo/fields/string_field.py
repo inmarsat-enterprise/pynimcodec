@@ -93,7 +93,7 @@ class StringField(FieldCodec):
         elif self.fixed:
             bits = self.size * 8
         else:
-            L = 8 if len(self._value) < 127 else 16
+            L = 8 if len(self._value) < 128 else 16
             bits = L + len(self._value) * 8
         return bits + (1 if self.optional else 0)
     
