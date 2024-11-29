@@ -12,6 +12,7 @@ import pytest
 
 from pynimcodec.nimo import (
     ArrayField,
+    BitmaskListField,
     BooleanField,
     DataField,
     DataFormat,
@@ -213,6 +214,39 @@ def array_field(array_element_fields_example: Fields) -> ArrayField:
 
 
 @pytest.fixture
+def bml_fields_example() -> Fields:
+    fields = Fields()
+    fields.add(UnsignedIntField(name='numberPacketsSent',
+                                size=32,
+                                data_type='uint_32'))
+    fields.add(UnsignedIntField(name='txPacketsSuccess',
+                                size=32,
+                                data_type='uint_32'))
+    fields.add(UnsignedIntField(name='txPacketsLost',
+                                size=32,
+                                data_type='uint_32'))
+    return fields
+
+
+@pytest.fixture
+def bitmasklist_field(bml_fields_example: Fields) -> BitmaskListField:
+    fixture_items = [
+        'ack',
+        '0533',
+        '0550',
+        '0575',
+        'Reserved',
+        '1033',
+        '1050',
+    ]
+    return BitmaskListField(name = 'bitmasklistFixture',
+                            items = fixture_items,
+                            size = 8,
+                            fields = bml_fields_example,
+                            description = 'An example bitmask list',
+                            )
+
+@pytest.fixture
 def return_message(array_element_fields_example) -> MessageCodec:
     """Returns a ArrayField with no values."""
     fields = Fields()
@@ -313,157 +347,6 @@ def test_boolean_field(bool_field):
     assert(bool_dflt_false_valset.encode() == '1')
 
 
-def test_data_field_data(data_field_data):
-    MAX_BYTES = 128
-    test_field: DataField = data_field_data(size=MAX_BYTES)
-    assert(not test_field.value)
-    assert(not test_field.optional)
-    assert(not test_field.default)
-    with pytest.raises(ValueError):
-        test_field.encode()
-    for i in range(0, MAX_BYTES):
-        b = [i % 255] * max(1, i)
-        test_field.value = bytes(b)
-        enc = test_field.encode()
-        bits = len(enc)
-        L = enc[:16] if i > 127 else enc[:8]
-        data_bin = enc[len(L):]
-        data_length = int(L[1:], 2)
-        assert(data_length == len(b))
-        data_bin = enc[len(L):]
-        data = int(data_bin, 2).to_bytes(int((bits - len(L)) / 8), 'big')
-        assert(data == bytes(b))
-        test_field.value = None
-        assert(test_field.value is None)
-        test_field.decode(enc)
-        assert(test_field.value == bytes(b))
-    #TODO: test cases for padding, truncation
-
-
-def test_data_field_float(data_field_float):
-    test_value = 1.234567
-    precision = 6
-    test_field: DataField = data_field_float(precision=precision,
-                                             value=test_value)
-    assert test_field.size == 4
-    assert test_field.fixed is True
-    assert len(test_field.value) == 4
-    assert test_field.precision == precision
-    assert test_field.converted_value == test_value
-
-
-def test_data_field_double(data_field_double):
-    test_value = 1.7976931348623158e+308
-    precision = None
-    test_field: DataField = data_field_double(precision=precision,
-                                              value=test_value,
-                                              fixed=True)
-    assert test_field.size == 8
-    assert test_field.fixed
-    assert len(test_field.value) == 8
-    assert test_field.precision == precision
-    assert test_field.converted_value == test_value
-
-
-def test_string_field(string_field):
-    from string import ascii_lowercase as char_iterator
-    MAX_SIZE = 155
-    FIXED_SIZE = 6
-    FIXED_STR_LONG = 'abcdefghi'
-    FIXED_STR_SHORT = 'a'
-    test_field: StringField = string_field(size=MAX_SIZE)
-    assert(not test_field.value)
-    assert(not test_field.optional)
-    assert(not test_field.default)
-    with pytest.raises(ValueError):
-        test_field.encode()
-    test_str = ''
-    for i in range(0, MAX_SIZE):
-        if i > test_field.size:
-            break
-        test_str += char_iterator[i % 26]
-        test_field.value = test_str
-        binstr = ''.join(format(ord(c), '08b') for c in test_str)
-        enc = test_field.encode()
-        L = enc[:16] if len(test_str) > 127 else enc[:8]
-        assert(enc == L + binstr)
-        test_field.value = None
-        assert(test_field.value is None)
-        test_field.decode(enc)
-        assert(test_field.value == test_str)
-    test_field = string_field(size=FIXED_SIZE)
-    test_field.value = FIXED_STR_LONG
-    assert(test_field.value == FIXED_STR_LONG[:FIXED_SIZE])
-    test_field.fixed = True
-    test_field.value = FIXED_STR_SHORT
-    assert(test_field.value == FIXED_STR_SHORT)
-    binstr = ''.join(format(ord(c), '08b') for c in FIXED_STR_SHORT)
-    binstr += '0' * 8 * (FIXED_SIZE - len(FIXED_STR_SHORT))
-    enc = test_field.encode()
-    assert(len(enc) == FIXED_SIZE * 8)
-    assert(enc == binstr)
-    v = test_field.value
-    test_field.decode(enc)
-    assert(test_field.value == v)
-
-
-def test_encode_optional(return_message_optional_field):
-    TEST_STR = 'optional'
-    SIN_MIN = 2 * 8
-    OPT = 1
-    L = 8 if len(TEST_STR) < 128 else 16
-    ASCII = len(TEST_STR) * 8
-    rm: MessageCodec = return_message_optional_field
-    rm.fields['optionalString'].value = TEST_STR
-    PRESENT_BYTES = math.ceil((SIN_MIN + OPT + L + ASCII) / 8)
-    assert rm.ota_size == PRESENT_BYTES
-    present = rm.encode()
-    assert len(base64.b64decode(present['data'])) == PRESENT_BYTES - 2
-    rm.fields['optionalString'].value = None
-    NOTPRESENT_BYTES = math.ceil((SIN_MIN + OPT) / 8)
-    assert rm.ota_size == NOTPRESENT_BYTES
-    notpresent = rm.encode()
-    assert len(base64.b64decode(notpresent['data'])) == NOTPRESENT_BYTES - 2
-
-
-def test_array_field(array_field, array_element_fields_example):
-    MAX_SIZE = 10
-    test_field: ArrayField = array_field(size=MAX_SIZE,
-                                         fields=array_element_fields_example)
-    assert(not test_field.fixed)
-    assert(not test_field.optional)
-    with pytest.raises(ValueError):
-        test_field.encode()
-    for i in range(0, MAX_SIZE):
-        element = array_element_fields_example
-        element['propertyName'] = f'testProp{i}'
-        element['propertyValue'] = i
-        test_field.append(element)
-        ref = deepcopy(test_field)
-        enc = test_field.encode()
-        L = enc[:16] if i > 127 else enc[:8]
-        assert(len(test_field.elements) == int('0b' + L, 2))
-        test_field.decode(enc)
-        assert(test_field == ref)
-
-
-def test_optimal_bits():
-    with pytest.raises(ValueError):
-        optimal_bits(1)
-    with pytest.raises(ValueError):
-        optimal_bits((1))
-    with pytest.raises(ValueError):
-        optimal_bits((1, 0))
-    test_range_1 = (0, 1)
-    assert optimal_bits(test_range_1) == 1
-    test_range_2 = (0, 2)
-    assert optimal_bits(test_range_2) == 2
-    test_range_3 = (-90 * 60 * 1000, 90 * 60 * 1000)
-    assert optimal_bits(test_range_3) == 24
-    test_range_4 = (-180 * 60 * 1000, 180 * 60 * 1000)
-    assert optimal_bits(test_range_4) == 25
-
-
 def test_enum_field():
     test_items = ['item1', 'item2', 'item3']
     size = 2
@@ -540,6 +423,177 @@ def test_signedint_field():
     assert(test_field.value == v)
 
 
+def test_string_field(string_field):
+    from string import ascii_lowercase as char_iterator
+    MAX_SIZE = 155
+    FIXED_SIZE = 6
+    FIXED_STR_LONG = 'abcdefghi'
+    FIXED_STR_SHORT = 'a'
+    test_field: StringField = string_field(size=MAX_SIZE)
+    assert(not test_field.value)
+    assert(not test_field.optional)
+    assert(not test_field.default)
+    with pytest.raises(ValueError):
+        test_field.encode()
+    test_str = ''
+    for i in range(0, MAX_SIZE):
+        if i > test_field.size:
+            break
+        test_str += char_iterator[i % 26]
+        test_field.value = test_str
+        binstr = ''.join(format(ord(c), '08b') for c in test_str)
+        enc = test_field.encode()
+        L = enc[:16] if len(test_str) > 127 else enc[:8]
+        assert(enc == L + binstr)
+        test_field.value = None
+        assert(test_field.value is None)
+        test_field.decode(enc)
+        assert(test_field.value == test_str)
+    test_field = string_field(size=FIXED_SIZE)
+    test_field.value = FIXED_STR_LONG
+    assert(test_field.value == FIXED_STR_LONG[:FIXED_SIZE])
+    test_field.fixed = True
+    test_field.value = FIXED_STR_SHORT
+    assert(test_field.value == FIXED_STR_SHORT)
+    binstr = ''.join(format(ord(c), '08b') for c in FIXED_STR_SHORT)
+    binstr += '0' * 8 * (FIXED_SIZE - len(FIXED_STR_SHORT))
+    enc = test_field.encode()
+    assert(len(enc) == FIXED_SIZE * 8)
+    assert(enc == binstr)
+    v = test_field.value
+    test_field.decode(enc)
+    assert(test_field.value == v)
+
+
+def test_data_field_data(data_field_data):
+    MAX_BYTES = 128
+    test_field: DataField = data_field_data(size=MAX_BYTES)
+    assert(not test_field.value)
+    assert(not test_field.optional)
+    assert(not test_field.default)
+    with pytest.raises(ValueError):
+        test_field.encode()
+    for i in range(0, MAX_BYTES):
+        b = [i % 255] * max(1, i)
+        test_field.value = bytes(b)
+        enc = test_field.encode()
+        bits = len(enc)
+        L = enc[:16] if i > 127 else enc[:8]
+        data_bin = enc[len(L):]
+        data_length = int(L[1:], 2)
+        assert(data_length == len(b))
+        data_bin = enc[len(L):]
+        data = int(data_bin, 2).to_bytes(int((bits - len(L)) / 8), 'big')
+        assert(data == bytes(b))
+        test_field.value = None
+        assert(test_field.value is None)
+        test_field.decode(enc)
+        assert(test_field.value == bytes(b))
+    #TODO: test cases for padding, truncation
+
+
+def test_data_field_float(data_field_float):
+    test_value = 1.234567
+    precision = 6
+    test_field: DataField = data_field_float(precision=precision,
+                                             value=test_value)
+    assert test_field.size == 4
+    assert test_field.fixed is True
+    assert len(test_field.value) == 4
+    assert test_field.precision == precision
+    assert test_field.converted_value == test_value
+
+
+def test_data_field_double(data_field_double):
+    test_value = 1.7976931348623158e+308
+    precision = None
+    test_field: DataField = data_field_double(precision=precision,
+                                              value=test_value,
+                                              fixed=True)
+    assert test_field.size == 8
+    assert test_field.fixed
+    assert len(test_field.value) == 8
+    assert test_field.precision == precision
+    assert test_field.converted_value == test_value
+
+
+def test_array_field(array_field, array_element_fields_example):
+    MAX_SIZE = 10
+    test_field: ArrayField = array_field(size=MAX_SIZE,
+                                         fields=array_element_fields_example)
+    assert(not test_field.fixed)
+    assert(not test_field.optional)
+    with pytest.raises(ValueError):
+        test_field.encode()
+    for i in range(0, MAX_SIZE):
+        element = array_element_fields_example
+        element['propertyName'] = f'testProp{i}'
+        element['propertyValue'] = i
+        test_field.append(element)
+        ref = deepcopy(test_field)
+        enc = test_field.encode()
+        L = enc[:16] if i > 127 else enc[:8]
+        assert(len(test_field.elements) == int('0b' + L, 2))
+        test_field.decode(enc)
+        assert(test_field == ref)
+
+
+def test_bml_field(bitmasklist_field: BitmaskListField, bml_fields_example: Fields):
+    test_field = bitmasklist_field
+    test_field.value = 5
+    element0 = bml_fields_example
+    element0['numberPacketsSent'] = 3
+    element0['txPacketsSuccess'] = 3
+    element0['txPacketsLost'] = 0
+    element1 = bml_fields_example
+    element1['numberPacketsSent'] = 2
+    element1['txPacketsSuccess'] = 1
+    element1['txPacketsLost'] = 1
+    test_field.append(element0)
+    test_field.append(element1)
+    ref = deepcopy(test_field)
+    enc = test_field.encode()
+    assert len(enc) == test_field.bits
+    test_field.decode(enc)
+    assert test_field == ref
+
+
+def test_encode_optional(return_message_optional_field):
+    TEST_STR = 'optional'
+    SIN_MIN = 2 * 8
+    OPT = 1
+    L = 8 if len(TEST_STR) < 128 else 16
+    ASCII = len(TEST_STR) * 8
+    rm: MessageCodec = return_message_optional_field
+    rm.fields['optionalString'].value = TEST_STR
+    PRESENT_BYTES = math.ceil((SIN_MIN + OPT + L + ASCII) / 8)
+    assert rm.ota_size == PRESENT_BYTES
+    present = rm.encode()
+    assert len(base64.b64decode(present['data'])) == PRESENT_BYTES - 2
+    rm.fields['optionalString'].value = None
+    NOTPRESENT_BYTES = math.ceil((SIN_MIN + OPT) / 8)
+    assert rm.ota_size == NOTPRESENT_BYTES
+    notpresent = rm.encode()
+    assert len(base64.b64decode(notpresent['data'])) == NOTPRESENT_BYTES - 2
+
+
+def test_optimal_bits():
+    with pytest.raises(ValueError):
+        optimal_bits(1)
+    with pytest.raises(ValueError):
+        optimal_bits((1))
+    with pytest.raises(ValueError):
+        optimal_bits((1, 0))
+    test_range_1 = (0, 1)
+    assert optimal_bits(test_range_1) == 1
+    test_range_2 = (0, 2)
+    assert optimal_bits(test_range_2) == 2
+    test_range_3 = (-90 * 60 * 1000, 90 * 60 * 1000)
+    assert optimal_bits(test_range_3) == 24
+    test_range_4 = (-180 * 60 * 1000, 180 * 60 * 1000)
+    assert optimal_bits(test_range_4) == 25
+
+
 def test_bool_xml(bool_field):
     test_field: BooleanField = bool_field()
     xml = test_field.xml()
@@ -604,7 +658,8 @@ def test_mdf_xml(message_definitions: MessageDefinitions):
 
 DECODE_TEST_CASES = {
     'locationJsonCodec': {
-        'codec': os.path.join(os.getcwd(), 'tests/examples/jsonCodec.json'),
+        'exclude': True,
+        'codec': os.path.join(os.getcwd(), 'tests/examples/coremodem.json'),
         'raw_payload': [
             0,
             72,
@@ -678,7 +733,7 @@ DECODE_TEST_CASES = {
         })
     },
     'locationXmlCodec': {
-        'codec': os.path.join(os.getcwd(), 'tests/examples/XMLCodec.idpmsg'),
+        'codec': os.path.join(os.getcwd(), 'tests/examples/coremodem.idpmsg'),
         'raw_payload': [
             0,
             72,
@@ -697,7 +752,7 @@ DECODE_TEST_CASES = {
             53,
         ],
         'decoded': dict({
-            "name": "location",
+            "name": "replyLocation",
             "description": "The modem's location",
             "codecServiceId": 0,
             "codecMessageId": 72,
@@ -722,7 +777,7 @@ DECODE_TEST_CASES = {
                 },
                 {
                     "name": "altitude",
-                    "description": "Altitude in meters",
+                    "description": "Altitude in metres",
                     "value": 88,
                     "type": "int"
                 },
@@ -734,7 +789,7 @@ DECODE_TEST_CASES = {
                 },
                 {
                     "name": "heading",
-                    "description": "Heading in 2-degree increments from North",
+                    "description": "Heading in 2-degree steps (North=0)",
                     "value": 82,
                     "type": "uint"
                 },
@@ -752,7 +807,8 @@ DECODE_TEST_CASES = {
         })
     },
     'rlSysConfig': {
-        'codec': os.path.join(os.getcwd(), 'tests/examples/jsonCodec.json'),
+        'exclude': True,
+        'codec': os.path.join(os.getcwd(), 'tests/examples/nimotestjson.json'),
         'raw_payload': [
             0,
             135,
@@ -1137,23 +1193,18 @@ def test_message_definitions_decode_message():
             data = bytes(test_inputs.get('raw_payload'))
             res = decode_message(data, test_codec, override_sin=True)
             expected: dict = test_inputs.get('decoded')
-            if expected:
-                try:
-                    assert res == expected
-                except AssertionError:
-                    for k, v in res.items():
-                        if isinstance(v, list):
-                            for i in v:
-                                assert i in expected[k]
-                        else:
-                            assert k in expected and expected[k] == v
-            else:
-                assert True
+            for k, v in expected.items():
+                if k != 'fields':
+                    assert k in res and res[k] == v
+                else:
+                    for i, field in enumerate(v):
+                        for fk, fv in field.items():
+                            assert fk in res['fields'][i] and fv == res['fields'][i][fk]
 
 
 def test_mdf_import():
     """"""
-    test_xml = os.path.join(os.getcwd(), 'tests/examples/XMLCodec.idpmsg')
+    test_xml = os.path.join(os.getcwd(), 'tests/examples/nimotestxml.idpmsg')
     msg_def = MessageDefinitions.from_mdf(test_xml)
     assert isinstance(msg_def, MessageDefinitions)
 
