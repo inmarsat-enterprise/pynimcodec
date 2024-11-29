@@ -1,3 +1,4 @@
+"""Utilities for processing an individual Message."""
 import math
 from binascii import b2a_base64
 

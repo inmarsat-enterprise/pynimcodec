@@ -1,3 +1,4 @@
+"""Utilities for processing Services as collections of Messages."""
 from warnings import warn
 
 from . import ET

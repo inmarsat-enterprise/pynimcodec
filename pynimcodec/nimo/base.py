@@ -1,5 +1,5 @@
-"""Base classes for NIMO codec.
-"""
+"""Base classes for NIMO codec."""
+
 class BaseCodec:
     def __init__(self, name: str, description: str = None) -> None:
         if not isinstance(name, str) or name.strip() == '':
