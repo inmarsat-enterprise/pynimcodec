@@ -139,7 +139,7 @@ class EnumField(FieldCodec):
         for string in self.items:
             item = ET.SubElement(items, 'string')
             item.text = str(string)
-        return super()._xml_flex_tags(['Size', 'Default'],xmlfield)
+        return super()._xml_flex_tags(['Size', 'Default'], xmlfield)
     
     def json(self) -> dict:
         """The EnumField JSON definition."""
