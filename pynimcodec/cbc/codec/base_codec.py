@@ -8,6 +8,8 @@ T = TypeVar('T')
 class CbcCodec:
     """The base class for all CBC codecs."""
     
+    required_args = ['name']
+    
     def __init__(self, name: str, description: str = None) -> None:
         if not isinstance(name, str) or name.strip() == '':
             raise ValueError('Invalid name must be non-empty string')
