@@ -32,11 +32,14 @@ class BitArray(list):
             raise ValueError('Only 0 or 1 can be assigned to BitArray element.')
         super().__setitem__(index, value)
     
-    def __getitem__(self, index: int) -> int:
-        return super().__getitem__(index)
+    # def __getitem__(self, s: slice) -> int:
+    #     if isinstance(s, slice):
+    #         sliced = super().__getitem__(s)
+    #         return sliced
+    #     return super().__getitem__(s)
 
-    def __delitem__(self, index: int) -> None:
-        super().__delitem__(index)
+    # def __delitem__(self, index: int) -> None:
+    #     super().__delitem__(index)
     
     def __repr__(self):
         return f'BitArray({super().__repr__()})'
@@ -94,6 +97,98 @@ class BitArray(list):
         for byte in value:
             bits.extend(int(bit) for bit in f'{byte:08b}')
         return cls(*bits)
+    
+    def read_int(self, signed: bool = False, start: int = 0, end: int = -1) -> int:
+        """Read the BitArray as an integer value.
+        
+        Args:
+            signed (bool): If set, use two's complement. Default unsigned.
+            start (int): The starting bit to read from (default 0)
+            end (int): The ending bit to read from (default -1 = end)
+        
+        Returns:
+            int: The integer value of the bits read.
+        
+        Raises:
+            ValueError: If start or end are invalid.
+        """
+        if not isinstance(start, int) or start < 0:
+            raise ValueError('Start bit must be positive integer')
+        if not isinstance(end, int) or (end < start and end != -1):
+            raise ValueError('end must be >= start or -1')
+        result = 0
+        for i, bit in enumerate(reversed(self[start:end])):
+            result += 2**i if bit else 0
+        if signed and self[start]:
+            result -= (1 << (end - start))
+        return result
+    
+    def read_bytes(self, start: int = 0, end: int = -1) -> bytes:
+        """Read the BitArray as a data buffer.
+        
+        Args:
+            start (int): The bit to start reading from (default beginning)
+            end (int): The bit to stop reading at (default -1 = end)
+        
+        Returns:
+            bytes: The resulting buffer.
+        
+        Raises:
+            ValueError: If start or end are invalid.
+        """
+        if not isinstance(start, int) or start < 0:
+            raise ValueError('start bit must be positive integer.')
+        if not isinstance(end, int) or (end < start and end != -1):
+            raise ValueError('end must be >= start or -1')
+        if end == -1:
+            end = len(self)
+        extract = BitArray(*self[start:end])
+        # create a bytearray for the full number of bytes needed then pack bits
+        result = bytearray((len(extract) + 7) // 8)
+        for i, bit in enumerate(extract):
+            if bit:
+                result[i // 8] |= 1 << (7 - (i % 8))
+        return bytes(result)
+    
+    def lshift(self, n: int = 1, extend: bool = True) -> None:
+        """Shift the BitArray left by the specified n bits.
+        
+        Args:
+            n (int): The number of bits to shift.
+            extend (bool): If set (default) the BitArray extends in size else
+                the size remains and high order bits are discarded.
+        
+        Raises:
+            ValueError: If n or extend is invalid.
+        """
+        if not isinstance(n, int) or n < 1:
+            raise ValueError('n must be integer greater than 0.')
+        if not isinstance(extend, bool):
+            raise ValueError('extend must be bool.')
+        for i in range(n):
+            if not extend:
+                del self[0]
+            self.append(0)
+    
+    def rshift(self, n: int = 1, preserve: bool = True) -> None:
+        """Shift the BitArray right by the specified n bits.
+        
+        Args:
+            n (int): The number of bits to shift.
+            preserve (bool): If set (default) the BitArray retains its size else
+                the size reduces by n bits.
+        
+        Raises:
+            ValueError: If n or extend is invalid.
+        """
+        if not isinstance(n, int) or n < 1:
+            raise ValueError('n must be integer greater than 0.')
+        if n > len(self):
+            raise ValueError('n exceeds BitArray length.')
+        for i in range(n):
+            del self[len(self) - 1]
+            if preserve:
+               self.insert(0, 0)
 
 
 def is_int(candidate: Any, allow_string: bool = False) -> bool:
@@ -113,7 +208,8 @@ def extract_from_buffer(buffer: bytes,
                         length: int = None,
                         signed: bool = False,
                         as_buffer: bool = False,
-                        ) -> 'int|bytes':
+                        new_offset: bool = False,
+                        ) -> 'int|bytes|tuple[int|bytes, int]':
     """Extract the value of bits from a buffer at a bit offset.
     
     Args:
@@ -122,10 +218,12 @@ def extract_from_buffer(buffer: bytes,
         length (int): The number of bits to extract. If None, extracts to the
             end of the buffer.
         signed (bool): If True will extract a signed value (two's complement).
-        as_buffer (bool): Return the value as a buffer (default returns integer).
+        as_buffer (bool): Return a `bytes` buffer (default returns `int`).
+        new_offset (bool): Include the new bit offset after the read.
     
     Returns:
-        int|bytes: The extracted value.
+        int|bytes|tuple: The extracted value. If `new_offset` is set a tuple
+            is returned with the value and the new bit offset
     
     Raises:
         ValueError: If the buffer, offset or length are invalid.
@@ -142,16 +240,12 @@ def extract_from_buffer(buffer: bytes,
         raise ValueError('Bit offset + length exceeds buffer size.')
     start_byte = offset // 8
     end_byte = (offset + length - 1) // 8 + 1
-    bit_start_within_byte = offset % 8
-    raw_data = int.from_bytes(buffer[start_byte:end_byte], byteorder='big')
-    total_bits = (end_byte - start_byte) * 8
-    shift_amount = total_bits - bit_start_within_byte - length
-    extracted_bits = (raw_data >> shift_amount) & ((1 << length) - 1)
-    if signed and (extracted_bits & (1 << (length - 1))):
-        extracted_bits -= (1 << length)
-    if as_buffer:
-        return int.to_bytes(extracted_bits, length // 8, 'big')
-    return extracted_bits
+    bit_array = BitArray.from_bytes(buffer[start_byte:end_byte])
+    start_bit = offset % 8
+    end_bit = start_bit + length
+    if as_buffer is True:
+        return bit_array.read_bytes(start_bit, end_bit)
+    return bit_array.read_int(signed, start_bit, end_bit)
 
 
 def append_bits_to_buffer(bit_array: BitArray,
