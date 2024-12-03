@@ -19,13 +19,16 @@ from .field import (
     decode_field,
     encode_field,
 )
-from .message import Message, Messages
+from .message import Message, Messages, create_message, decode_message, encode_message
 from .fileparser import export_json, import_json
 
 __all__ = [
     'Message',
     'Messages',
     'MessageDirection',
+    'create_message',
+    'decode_message',
+    'encode_message',
     'Field',
     'Fields',
     'FieldType',
