@@ -5,18 +5,25 @@ from typing import Any
 from pynimcodec.bitman import extract_from_buffer
 from ..constants import FieldType
 from .base_field import Field
-from . import bool_field, int_field, uint_field, enum_field, string_field, struct_field
+from . import (array_field, bitmask_field, bitmaskarray_field, bool_field,
+               data_field, enum_field, float_field, int_field, string_field,
+               struct_field, uint_field)
 
 __all__ = ['create_field', 'decode_field', 'encode_field']
 
 
 _codecs = {
+    FieldType.ARRAY: array_field,
+    FieldType.BITMASK: bitmask_field,
+    FieldType.BITMASKARRAY: bitmaskarray_field,
     FieldType.BOOL: bool_field,
-    FieldType.INT: int_field,
-    FieldType.UINT: uint_field,
+    FieldType.DATA: data_field,
     FieldType.ENUM: enum_field,
+    FieldType.FLOAT: float_field,
+    FieldType.INT: int_field,
     FieldType.STRING: string_field,
     FieldType.STRUCT: struct_field,
+    FieldType.UINT: uint_field,
 }
 
 
