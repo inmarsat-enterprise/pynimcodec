@@ -143,7 +143,7 @@ def encode_fields(content: dict,
                 return cfield[name]
     
     if not isinstance(content, dict) or 'value' not in content:
-        raise ValueError('Content missing fields attribute.')
+        raise ValueError('Content missing value.')
     fields: Fields = getattr(codec, 'fields')
     if not fields:
         raise ValueError('Codec has no fields attribute.')
