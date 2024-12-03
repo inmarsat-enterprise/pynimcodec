@@ -111,9 +111,7 @@ def decode(field: Field, buffer: bytes, offset: int) -> 'tuple[int|float, int]':
     """
     if not isinstance(field, IntField):
         raise ValueError('Invalid field definition.')
-    value = extract_from_buffer(buffer, offset, field.size)
-    if value & (1 << (field.size - 1)) != 0:
-        value = value - (1 << field.size)
+    value = extract_from_buffer(buffer, offset, field.size, signed=True)
     if field.decalc:
         value = calc_decode(field.decalc, value)
     return ( value, offset + field.size )
