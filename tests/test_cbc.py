@@ -10,6 +10,10 @@ from pynimcodec.cbc import (
     create_field,
     encode_field,
     decode_field,
+    Message,
+    create_message,
+    decode_message,
+    encode_message,
 )
 
 
@@ -163,3 +167,30 @@ def test_struct_field():
     assert len(buffer) == 7
     decoded, _ = decode_field(test_field, buffer, offset)
     assert 'value' in decoded and decoded['value'] == test_val['value']
+
+
+def test_message():
+    """"""
+    test_message = create_message({
+        'name': 'testMoMessage',
+        'direction': 'UPLINK',
+        'messageKey': 49152,
+        'fields': [
+            { 'name': 'testUintField', 'type': 'uint', 'size': 4 },
+            { 'name': 'testString', 'type': 'string', 'size': 50, 'optional': True},
+        ]
+    })
+    assert isinstance(test_message, Message)
+    test_val = {
+        'name': 'testMoMessage',
+        'value': [
+            { 'testUintField': 3 },
+            # { 'testString': 'hello' },
+        ]
+    }
+    encoded = encode_message(test_val, test_message)
+    assert len(encoded) == 7 if len(test_val['value']) == 2 else 1
+    decoded = decode_message(encoded, test_message)
+    assert decoded == test_val
+    encoded = encode_message(test_val, test_message, nim=True)
+    assert len(encoded) == 9 if len(test_val['value']) == 2 else 3
