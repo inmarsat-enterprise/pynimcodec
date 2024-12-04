@@ -1,0 +1,327 @@
+<?xml version='1.0' encoding='utf-8'?>
+<MessageDefinition xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <Services>
+    <Service>
+      <Name>fieldedgeIotDemo</Name>
+      <SIN>255</SIN>
+      <ForwardMessages>
+        <Message>
+          <Name>SatelliteTelemetryGet</Name>
+          <MIN>1</MIN>
+          <Fields />
+        </Message>
+        <Message>
+          <Name>ConfigGet</Name>
+          <MIN>2</MIN>
+          <Fields>
+            <Field xsi:type="ArrayField">
+              <Name>properties</Name>
+              <Description>List of properties to get. If not present, gets all.</Description>
+              <Optional>true</Optional>
+              <Fields>
+                <Field xsi:type="StringField">
+                  <Name>name</Name>
+                  <Description>The property name</Description>
+                  <Size>50</Size>
+                </Field>
+              </Fields>
+              <Size>100</Size>
+            </Field>
+          </Fields>
+        </Message>
+        <Message>
+          <Name>ConfigSet</Name>
+          <MIN>3</MIN>
+          <Fields>
+            <Field xsi:type="BooleanField">
+              <Name>reportChange</Name>
+              <Description>Triggers a ConfigChange report with changes.</Description>
+            </Field>
+            <Field xsi:type="BooleanField">
+              <Name>reportTelemetry</Name>
+              <Description>Triggers a PeriodicReport if reportInterval changed.</Description>
+            </Field>
+            <Field xsi:type="ArrayField">
+              <Name>properties</Name>
+              <Description>List of changes to make.</Description>
+              <Fields>
+                <Field xsi:type="StringField">
+                  <Name>name</Name>
+                  <Description>The property name</Description>
+                  <Size>50</Size>
+                </Field>
+                <Field xsi:type="StringField">
+                  <Name>value</Name>
+                  <Description>The new value (str)</Description>
+                  <Size>50</Size>
+                </Field>
+              </Fields>
+              <Size>100</Size>
+            </Field>
+          </Fields>
+        </Message>
+        <Message>
+          <Name>TextMobileTerminated</Name>
+          <MIN>4</MIN>
+          <Fields>
+            <Field xsi:type="UnsignedIntField">
+              <Name>source</Name>
+              <Description>An address code intended to map to a unique user</Description>
+              <Optional>true</Optional>
+              <Size>32</Size>
+            </Field>
+            <Field xsi:type="StringField">
+              <Name>text</Name>
+              <Size>255</Size>
+            </Field>
+            <Field xsi:type="UnsignedIntField">
+              <Name>timestamp</Name>
+              <Description>The (unix) timestamp the message was sent by the sender</Description>
+              <Optional>true</Optional>
+              <Size>32</Size>
+            </Field>
+          </Fields>
+        </Message>
+        <Message>
+          <Name>AddressBookUpdate</Name>
+          <MIN>5</MIN>
+          <Fields>
+            <Field xsi:type="ArrayField">
+              <Name>addresses</Name>
+              <Description>List of name/address pairs</Description>
+              <Optional>true</Optional>
+              <Fields>
+                <Field xsi:type="StringField">
+                  <Name>name</Name>
+                  <Description>The address/name</Description>
+                  <Size>50</Size>
+                </Field>
+                <Field xsi:type="UnsignedIntField">
+                  <Name>address</Name>
+                  <Description>An address code intended to map to a unique user</Description>
+                  <Size>32</Size>
+                </Field>
+              </Fields>
+              <Size>100</Size>
+            </Field>
+          </Fields>
+        </Message>
+      </ForwardMessages>
+      <ReturnMessages>
+        <Message>
+          <Name>Error</Name>
+          <MIN>255</MIN>
+          <Fields>
+            <Field xsi:type="UnsignedIntField">
+              <Name>errorCode</Name>
+              <Description>A unique error code</Description>
+              <Size>16</Size>
+            </Field>
+            <Field xsi:type="StringField">
+              <Name>detail</Name>
+              <Optional>true</Optional>
+              <Size>255</Size>
+            </Field>
+          </Fields>
+        </Message>
+        <Message>
+          <Name>SatelliteTelemetry</Name>
+          <MIN>1</MIN>
+          <Fields>
+            <Field xsi:type="UnsignedIntField">
+              <Name>timestamp</Name>
+              <Size>31</Size>
+            </Field>
+            <Field xsi:type="SignedIntField">
+              <Name>latitude</Name>
+              <Size>24</Size>
+              <Default>5400000</Default>
+            </Field>
+            <Field xsi:type="SignedIntField">
+              <Name>longitude</Name>
+              <Size>25</Size>
+              <Default>10800000</Default>
+            </Field>
+            <Field xsi:type="SignedIntField">
+              <Name>altitude</Name>
+              <Size>13</Size>
+            </Field>
+            <Field xsi:type="UnsignedIntField">
+              <Name>speed</Name>
+              <Size>8</Size>
+            </Field>
+            <Field xsi:type="UnsignedIntField">
+              <Name>heading</Name>
+              <Size>9</Size>
+            </Field>
+            <Field xsi:type="UnsignedIntField">
+              <Name>gnssSatellites</Name>
+              <Size>4</Size>
+            </Field>
+            <Field xsi:type="UnsignedIntField">
+              <Name>pdop</Name>
+              <Size>5</Size>
+              <Default>31</Default>
+            </Field>
+            <Field xsi:type="UnsignedIntField">
+              <Name>snr</Name>
+              <Size>9</Size>
+            </Field>
+            <Field xsi:type="SignedIntField">
+              <Name>temperature</Name>
+              <Size>7</Size>
+            </Field>
+          </Fields>
+        </Message>
+        <Message>
+          <Name>ConfigReport</Name>
+          <MIN>2</MIN>
+          <Fields>
+            <Field xsi:type="ArrayField">
+              <Name>property</Name>
+              <Description>List of configuration property values. If triggered by ConfigSet will just reflect changes.</Description>
+              <Fields>
+                <Field xsi:type="StringField">
+                  <Name>name</Name>
+                  <Description>The property name</Description>
+                  <Size>50</Size>
+                </Field>
+                <Field xsi:type="StringField">
+                  <Name>value</Name>
+                  <Description>The property value (str)</Description>
+                  <Size>50</Size>
+                </Field>
+              </Fields>
+              <Size>100</Size>
+            </Field>
+          </Fields>
+        </Message>
+        <Message>
+          <Name>TextMobileOriginated</Name>
+          <MIN>4</MIN>
+          <Fields>
+            <Field xsi:type="UnsignedIntField">
+              <Name>destination</Name>
+              <Description>An address code intended to map to a unique user</Description>
+              <Optional>true</Optional>
+              <Size>32</Size>
+            </Field>
+            <Field xsi:type="StringField">
+              <Name>text</Name>
+              <Optional>true</Optional>
+              <Size>255</Size>
+            </Field>
+            <Field xsi:type="EnumField">
+              <Name>helpCode</Name>
+              <Optional>true</Optional>
+              <Items>
+                <string>SECURITY</string>
+                <string>MEDICAL</string>
+                <string>FIRE</string>
+                <string>MECHANICAL</string>
+                <string>INSTRUCTION</string>
+              </Items>
+              <Size>4</Size>
+            </Field>
+            <Field xsi:type="UnsignedIntField">
+              <Name>timestamp</Name>
+              <Description>Seconds since 1970-01-01T00:00:00Z</Description>
+              <Optional>true</Optional>
+              <Size>31</Size>
+            </Field>
+            <Field xsi:type="SignedIntField">
+              <Name>latitude</Name>
+              <Description>Latitude in degrees * 60000</Description>
+              <Optional>true</Optional>
+              <Size>24</Size>
+            </Field>
+            <Field xsi:type="SignedIntField">
+              <Name>longitude</Name>
+              <Description>Longitude in degrees * 60000</Description>
+              <Optional>true</Optional>
+              <Size>25</Size>
+            </Field>
+          </Fields>
+        </Message>
+        <Message>
+          <Name>AddressBook</Name>
+          <MIN>5</MIN>
+          <Fields>
+            <Field xsi:type="ArrayField">
+              <Name>addresses</Name>
+              <Description>List of name/address pairs</Description>
+              <Fields>
+                <Field xsi:type="StringField">
+                  <Name>name</Name>
+                  <Description>The address/name</Description>
+                  <Size>50</Size>
+                </Field>
+                <Field xsi:type="UnsignedIntField">
+                  <Name>address</Name>
+                  <Description>An address code intended to map to a unique user</Description>
+                  <Size>32</Size>
+                </Field>
+              </Fields>
+              <Size>100</Size>
+            </Field>
+          </Fields>
+        </Message>
+        <Message>
+          <Name>ScannedCode</Name>
+          <MIN>6</MIN>
+          <Fields>
+            <Field xsi:type="StringField">
+              <Name>codeString</Name>
+              <Size>3000</Size>
+            </Field>
+            <Field xsi:type="UnsignedIntField">
+              <Name>timestamp</Name>
+              <Description>Timestamp of GNSS fix in seconds since 1970-01-01T00:00:00Z</Description>
+              <Size>31</Size>
+            </Field>
+            <Field xsi:type="SignedIntField">
+              <Name>latitude</Name>
+              <Description>Latitude in degrees * 60000</Description>
+              <Size>24</Size>
+              <Default>5400000</Default>
+            </Field>
+            <Field xsi:type="SignedIntField">
+              <Name>longitude</Name>
+              <Description>Longitude in degrees * 60000</Description>
+              <Size>25</Size>
+              <Default>10800000</Default>
+            </Field>
+          </Fields>
+        </Message>
+        <Message>
+          <Name>VehicleTelemetry</Name>
+          <MIN>7</MIN>
+          <Fields>
+            <Field xsi:type="ArrayField">
+              <Name>pids</Name>
+              <Description>The list of OBD-II parameters reported.</Description>
+              <Fields>
+                <Field xsi:type="UnsignedIntField">
+                  <Name>pid</Name>
+                  <Description>The PID</Description>
+                  <Size>8</Size>
+                </Field>
+                <Field xsi:type="DataField">
+                  <Name>value</Name>
+                  <Description>The raw PID value</Description>
+                  <Size>4</Size>
+                </Field>
+              </Fields>
+              <Size>100</Size>
+            </Field>
+            <Field xsi:type="UnsignedIntField">
+              <Name>serviceMode</Name>
+              <Description>The diagnostic service</Description>
+              <Size>4</Size>
+            </Field>
+          </Fields>
+        </Message>
+      </ReturnMessages>
+    </Service>
+  </Services>
+</MessageDefinition>

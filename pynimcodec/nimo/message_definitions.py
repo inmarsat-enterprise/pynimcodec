@@ -218,8 +218,9 @@ class MessageDefinitions:
                         )
                         msg_fields = Fields()
                         xml_fields = msg_def.find('Fields')
-                        for field in xml_fields.findall('Field'):
-                            msg_fields.add(cls._parse_xml_field(field))
+                        if xml_fields:
+                            for field in xml_fields.findall('Field'):
+                                msg_fields.add(cls._parse_xml_field(field))
                         msg_codec.fields = msg_fields
                         msg_codecs.add(msg_codec)
                     if msg_type.startswith('Return'):

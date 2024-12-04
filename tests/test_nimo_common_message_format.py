@@ -661,7 +661,7 @@ def test_mdf_xml(message_definitions: MessageDefinitions):
 DECODE_TEST_CASES = {
     'locationJsonCodec': {
         'exclude': True,
-        'codec': os.path.join(os.getcwd(), 'tests/examples/coremodem.json'),
+        'codec': os.path.join(os.getcwd(), 'secrets/coremodem.json'),
         'raw_payload': [
             0,
             72,
@@ -735,7 +735,8 @@ DECODE_TEST_CASES = {
         })
     },
     'locationXmlCodec': {
-        'codec': os.path.join(os.getcwd(), 'tests/examples/coremodem.idpmsg'),
+        'exclude': True,
+        'codec': os.path.join(os.getcwd(), 'secrets/coremodem.idpmsg'),
         'raw_payload': [
             0,
             72,
@@ -754,7 +755,7 @@ DECODE_TEST_CASES = {
             53,
         ],
         'decoded': dict({
-            "name": "replyLocation",
+            "name": "replyPosition",
             "description": "The modem's location",
             "codecServiceId": 0,
             "codecMessageId": 72,
@@ -1184,7 +1185,107 @@ DECODE_TEST_CASES = {
             8
         ],
         'decoded': {},
+    
     },
+    'satelliteTelemetery':{
+        'codec': os.path.join(os.getcwd(), 'tests/examples/fieldedge-iotdemo.idpmsg'),
+        'raw_payload': [
+            255,
+            1,
+            206,
+            121,
+            165,
+            72,
+            83,
+            24,
+            125,
+            186,
+            171,
+            12,
+            2,
+            152,
+            3,
+            174,
+            3,
+            38,
+            62
+            ],
+        'decoded': dict({
+            "name": "SatelliteTelemetry",
+            "codecServiceId": 255,
+            "codecMessageId": 1,
+            "fields": [
+                {
+                    "name": "timestamp",
+                    "value": 1732039332,
+                    "type": "uint"
+                },
+                {
+                    "name": "latitude",
+                    "value": 2722878,
+                    "type": "int"
+                },
+                {
+                    "name": "longitude",
+                    "value": -4543732,
+                    "type": "int"
+                },
+                {
+                    "name": "altitude",
+                    "value": 83,
+                    "type": "int"
+                },
+                {
+                    "name": "speed",
+                    "value": 0,
+                    "type": "uint"
+                },
+                {
+                    "name": "heading",
+                    "value": 235,
+                    "type": "uint"
+                },
+                {
+                    "name": "gnssSatellites",
+                    "value": 8,
+                    "type": "uint"
+                },
+                {
+                    "name": "pdop",
+                    "value": 1,
+                    "type": "uint"
+                },
+                {
+                    "name": "snr",
+                    "value": 294,
+                    "type": "uint"
+                },
+                {
+                    "name": "temperature",
+                    "value": 31,
+                    "type": "int"
+                }
+            ]
+        })
+    },
+    'satelliteTelemeteryOGWS': {
+        'codec': os.path.join(os.getcwd(), 'tests/examples/fieldedge-iotdemo.idpmsg'),
+        'raw_payload': "/wHM0y78UxiBuqsLApAEvgPuKA==",
+        'decoded': dict({"name":"SatelliteTelemetry",
+                           "codecServiceId":255,
+                           "codecMessageId":1,
+                           "fields":[
+                               {"name":"timestamp","value":1718196094,"type":"uint"},
+                               {"name":"latitude","value":2722880,"type":"int"},
+                               {"name":"longitude","value":-4543733,"type":"int"},
+                               {"name":"altitude","value":82,"type":"int"},
+                               {"name":"speed","value":0,"type":"uint"},
+                               {"name":"heading","value":303,"type":"uint"},
+                               {"name":"gnssSatellites","value":8,"type":"uint"},
+                               {"name":"pdop","value":1,"type":"uint"},
+                               {"name":"snr","value":494,"type":"uint"},
+                               {"name":"temperature","value":20,"type":"int"}]})
+    }
 }
 
 def test_message_definitions_decode_message():
@@ -1192,7 +1293,11 @@ def test_message_definitions_decode_message():
     for test_inputs in DECODE_TEST_CASES.values():
         if not test_inputs.get('exclude', False):
             test_codec = test_inputs.get('codec')
-            data = bytes(test_inputs.get('raw_payload'))
+            raw_payload = test_inputs.get('raw_payload')
+            if isinstance(raw_payload, (list)):
+                data = bytes(raw_payload)
+            else:
+                data = base64.b64decode(raw_payload)
             res = decode_message(data, test_codec, override_sin=True)
             expected: dict = test_inputs.get('decoded')
             for k, v in expected.items():
