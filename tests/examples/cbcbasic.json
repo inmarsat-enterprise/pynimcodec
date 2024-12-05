@@ -1,0 +1,16 @@
+{
+    "application": "exampleApplication",
+    "version": "1.0",
+    "description": "An example set of application-specific message structures",
+    "messages": [
+        {
+            "name": "TestMessage",
+            "direction": "UPLINK",
+            "messageKey": 49152,
+            "description": "An optional message description.",
+            "fields": [
+                { "name":"exampleField", "type":"uint", "size":8 }
+            ]
+        }
+    ]
+}
