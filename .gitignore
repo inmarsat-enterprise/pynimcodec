@@ -7,3 +7,4 @@ __pycache__
 dist/archive
 secrets
 idpmodem.idpmsg
+dist
