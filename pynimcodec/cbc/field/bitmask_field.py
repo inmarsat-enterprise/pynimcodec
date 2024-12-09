@@ -25,7 +25,7 @@ class BitmaskField(Field):
     def __init__(self, name: str, **kwargs) -> None:
         if not all(k in kwargs for k in self.required_kwargs):
             raise ValueError(f'Missing kwarg(s) from {self.required_kwargs}')
-        kwargs.pop('type')
+        kwargs.pop('type', None)
         super().__init__(name, FIELD_TYPE, **kwargs)
         self._size = 0
         self.size = kwargs.get('size')
@@ -70,7 +70,7 @@ class BitmaskField(Field):
         self._enum = keys_values
     
     @property
-    def max_value(self) -> int:
+    def _max_value(self) -> int:
         return 2**self.size - 1
     
     def decode(self, buffer: bytes, offset: int) -> 'tuple[int|float, int]':
@@ -153,7 +153,7 @@ def encode(field: BitmaskField,
                     value_int += 2**int(k)
                     break   # from enum iteration
         value = value_int
-    if value < 0 or value > field.max_value:
-        raise ValueError(f'Invalid value must be in range 0..{field.max_value}')
+    if value < 0 or value > field._max_value:
+        raise ValueError(f'Invalid value must be in range 0..{field._max_value}')
     bits = BitArray.from_int(value, field.size)
     return ( append_bits_to_buffer(bits, buffer, offset), offset + field.size )

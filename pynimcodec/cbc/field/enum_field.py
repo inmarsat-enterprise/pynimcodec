@@ -25,7 +25,7 @@ class EnumField(Field):
     def __init__(self, name: str, **kwargs) -> None:
         if not all(k in kwargs for k in self.required_kwargs):
             raise ValueError(f'Missing kwarg(s) from {self.required_kwargs}')
-        kwargs.pop('type')
+        kwargs.pop('type', None)
         super().__init__(name, FIELD_TYPE, **kwargs)
         self._size = 0
         self.size = kwargs.get('size')
@@ -44,7 +44,7 @@ class EnumField(Field):
         self._size = value
     
     @property
-    def max_value(self) -> int:
+    def _max_value(self) -> int:
         return 2**self.size / 2 - 1
     
     @property
@@ -58,8 +58,8 @@ class EnumField(Field):
         for k in keys_values:
             try:
                 key_int = int(k)
-                if key_int < 0 or key_int > self.max_value:
-                    errmsg = f'Key {k} must be in range 0..{self.max_value}.'
+                if key_int < 0 or key_int > self._max_value:
+                    errmsg = f'Key {k} must be in range 0..{self._max_value}.'
                     raise ValueError(errmsg)
             except ValueError as exc:
                 errmsg = f'Invalid key {k} must be integer parsable.'

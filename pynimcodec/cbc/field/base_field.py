@@ -1,9 +1,11 @@
 """Base class for all Fields."""
 
+from enum import Enum
 from typing import Any
 
 from pynimcodec.bitman import append_bits_to_buffer, extract_from_buffer
 from pynimcodec.cbc.codec.base_codec import CbcCodec
+from pynimcodec.utils import camel_case
 
 from ..constants import FieldType
 from ..codec.base_codec import CodecList
@@ -42,6 +44,32 @@ class Field(CbcCodec):
             raise ValueError('Invalid boolean for optional.')
         self._optional = value
     
+    def to_json(self):
+        key_order = ['name', 'type', 'description', 'size', 'optional', 'fixed']
+        raw = {}
+        for attr_name in dir(self.__class__):
+            if (not isinstance(getattr(self.__class__, attr_name), property) or
+                attr_name.startswith('_') or
+                getattr(self, attr_name) is None or
+                getattr(self, attr_name) in ['']):
+                # skip
+                continue
+            elif (attr_name in ['optional', 'fixed'] and
+                  getattr(self, attr_name) is False):
+                continue
+            elif isinstance(getattr(self, attr_name), Fields):
+                raw[attr_name] = []
+                for fld in getattr(self, attr_name):
+                    raw[attr_name].append(fld.to_json())
+            elif (issubclass(getattr(self, attr_name).__class__, Enum)):
+                raw[attr_name] = getattr(self, attr_name).value
+            else:
+                raw[attr_name] = getattr(self, attr_name)
+        reordered = { camel_case(k): raw[k] for k in key_order if k in raw }
+        remaining = { camel_case(k): raw[k] for k in raw if k not in key_order }
+        reordered.update(remaining)
+        return reordered
+        
     def decode(self, buffer: bytes, offset: int) -> 'tuple[Any, int]':
         """Decodes the field value from a buffer at a bit offset.
         

@@ -27,7 +27,7 @@ class IntField(Field):
     def __init__(self, name: str, **kwargs) -> None:
         if not all(k in kwargs for k in self.required_kwargs):
             raise ValueError(f'Missing kwarg(s) from {self.required_kwargs}')
-        kwargs.pop('type')
+        kwargs.pop('type', None)
         super().__init__(name, FIELD_TYPE, **kwargs)
         self._size = 0
         self.size = kwargs.get('size')
@@ -71,11 +71,11 @@ class IntField(Field):
             raise ValueError('Invalid expression.') from exc
     
     @property
-    def max_value(self) -> int:
+    def _max_value(self) -> int:
         return int(2**self.size / 2) - 1
     
     @property
-    def min_value(self) -> int:
+    def _min_value(self) -> int:
         return -int(2**self.size / 2)
     
     def decode(self, buffer: bytes, offset: int) -> 'tuple[int|float, int]':
@@ -152,7 +152,7 @@ def encode(field: IntField,
         value = calc_encode(field.encalc, value)
     elif not isinstance(value, int):
         raise ValueError('Invalid integer value.')
-    if value < field.min_value or value > field.max_value:
+    if value < field._min_value or value > field._max_value:
         raise ValueError(f'Value too large to encode in {field.size} bits.')
     bits = BitArray.from_int(value, field.size)
     return ( append_bits_to_buffer(bits, buffer, offset), offset + field.size )

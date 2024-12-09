@@ -29,7 +29,7 @@ class BitmaskArrayField(Field):
     def __init__(self, name: str, **kwargs) -> None:
         if not all(k in kwargs for k in self.required_kwargs):
             raise ValueError(f'Missing kwarg(s) from {self.required_kwargs}')
-        kwargs.pop('type')
+        kwargs.pop('type', None)
         super().__init__(name, FIELD_TYPE, **kwargs)
         self._size = 0
         self.size = kwargs.get('size')
@@ -73,7 +73,7 @@ class BitmaskArrayField(Field):
         self._enum = keys_values
     
     @property
-    def max_value(self) -> int:
+    def _max_value(self) -> int:
         return 2**self.size - 1
     
     @property

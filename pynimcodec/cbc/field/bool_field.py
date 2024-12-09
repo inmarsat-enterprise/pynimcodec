@@ -18,7 +18,7 @@ class BoolField(Field):
     """
     
     def __init__(self, name: str, **kwargs) -> None:
-        kwargs.pop('type')
+        kwargs.pop('type', None)
         super().__init__(name, FIELD_TYPE, **kwargs)
     
     def decode(self, buffer: bytes, offset: int) -> 'tuple[int|float, int]':

@@ -26,7 +26,7 @@ class StringField(Field):
     def __init__(self, name: str, **kwargs) -> None:
         if not all(k in kwargs for k in self.required_kwargs):
             raise ValueError(f'Missing kwarg(s) from {self.required_kwargs}')
-        kwargs.pop('type')
+        kwargs.pop('type', None)
         super().__init__(name, FIELD_TYPE, **kwargs)
         self._size = 0
         self.size = kwargs.get('size')

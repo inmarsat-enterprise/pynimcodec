@@ -1,3 +1,4 @@
+import os
 import pytest
 
 from pynimcodec.bitman import extract_from_buffer
@@ -11,9 +12,14 @@ from pynimcodec.cbc import (
     encode_field,
     decode_field,
     Message,
+    Messages,
+    MessageDirection,
+    Fields,
     create_message,
     decode_message,
     encode_message,
+    import_json,
+    export_json,
 )
 
 
@@ -188,9 +194,46 @@ def test_message():
             # { 'testString': 'hello' },
         ]
     }
-    encoded = encode_message(test_val, test_message)
+    encoded = encode_message(test_val, message=test_message)
     assert len(encoded) == 7 if len(test_val['value']) == 2 else 1
-    decoded = decode_message(encoded, test_message)
+    decoded = decode_message(encoded, message=test_message)
     assert decoded == test_val
-    encoded = encode_message(test_val, test_message, nim=True)
+    encoded = encode_message(test_val, message=test_message, nim=True)
     assert len(encoded) == 9 if len(test_val['value']) == 2 else 3
+    coap_message = encode_message(test_val, message=test_message, coap=True)
+    assert coap_message.mid == test_message.message_key
+    assert len(coap_message.payload) == 7 if len(test_val['value']) == 2 else 1
+
+
+def test_file_import():
+    """"""
+    test_path = os.path.join(os.getcwd(), 'tests/examples/cbcimport.json')
+    app_codec = import_json(test_path)
+    assert isinstance(app_codec, Messages)
+    test_val = {
+        'name': 'TestMessage',
+        # 'direction': 'UPLINK',
+        # 'messageKey': 49152,
+        'value': [
+            { 'exampleField': 42 }
+        ]
+    }
+    encoded = app_codec.encode(test_val)
+    assert len(encoded) == 1
+    decoded = app_codec.decode(encoded, name=test_val['name'])
+    assert decoded == test_val
+
+
+def test_file_export():
+    """"""
+    test_path = os.path.join(os.getcwd(), 'tests/examples/cbcexport.json')
+    codec_list = Messages()
+    test_message = Message(name='testMessage',
+                           direction=MessageDirection.MO,
+                           message_key=49152,
+                           fields=Fields([
+                               IntField(name='testIntField', size=4,),
+                            ]))
+    codec_list.append(test_message)
+    export_json(test_path, codec_list)
+    assert os.path.isfile(test_path)
