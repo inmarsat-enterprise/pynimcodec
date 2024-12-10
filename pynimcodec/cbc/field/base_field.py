@@ -6,21 +6,20 @@ from typing import Any
 
 from pynimcodec.bitman import append_bits_to_buffer, extract_from_buffer
 from pynimcodec.cbc.codec.base_codec import CbcCodec
-from pynimcodec.utils import camel_case
+from pynimcodec.utils import camel_case, snake_case
 
-from ..constants import FieldType
 from ..codec.base_codec import CodecList
+from ..constants import FieldType
 
 
 class Field(CbcCodec):
     """Base type for all fields."""
     
-    required_args = ['name', 'type']
-    
-    def __init__(self, name: str, type: FieldType, **kwargs) -> None:
-        super().__init__(name, kwargs.pop('description', None))
+    def __init__(self, name: str, **kwargs) -> None:
+        self._add_kwargs(['type'], ['optional'])
+        super().__init__(name, **kwargs)
         self._type: FieldType = None
-        self.type = type
+        self.type = kwargs.get('type')
         self._optional: bool = False
         self.optional = kwargs.get('optional', False)
     
@@ -70,6 +69,13 @@ class Field(CbcCodec):
         remaining = { camel_case(k): raw[k] for k in raw if k not in key_order }
         reordered.update(remaining)
         return reordered
+    
+    @classmethod
+    def from_json(cls, content: dict) -> 'Field':
+        """Create a field from a JSON-style content dictionary."""
+        if not isinstance(content, dict) or not content:
+            raise ValueError('Invalid content.')
+        return cls(**{snake_case(k): v for k, v in content.items()})
         
     def decode(self, buffer: bytes, offset: int) -> 'tuple[Any, int]':
         """Decodes the field value from a buffer at a bit offset.

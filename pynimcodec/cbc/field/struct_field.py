@@ -1,5 +1,7 @@
 """Struct field class and methods."""
 
+from pynimcodec.utils import snake_case
+
 from ..constants import FieldType
 from .base_field import Field, Fields, decode_fields, encode_fields
 
@@ -17,13 +19,10 @@ class StructField(Field):
         fields (Field[]): The list of fields making up the structure.
     """
     
-    required_kwargs = ['fields']
-    
     def __init__(self, name: str, **kwargs) -> None:
-        if not all(k in kwargs for k in self.required_kwargs):
-            raise ValueError(f'Missing kwarg(s) from {self.required_kwargs}')
-        kwargs.pop('type', None)
-        super().__init__(name, FIELD_TYPE, **kwargs)
+        kwargs['type'] = FIELD_TYPE
+        self._add_kwargs(['fields'], [])
+        super().__init__(name, **kwargs)
         self._fields: Fields = None
         self.fields = kwargs.get('fields')
     
@@ -53,7 +52,7 @@ class StructField(Field):
 
 def create(**kwargs) -> StructField:
     """Create a StructField."""
-    return StructField(**kwargs)
+    return StructField(**{snake_case(k): v for k, v in kwargs.items()})
 
 
 def decode(field: Field, buffer: bytes, offset: int) -> 'tuple[dict, int]':

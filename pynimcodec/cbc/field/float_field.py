@@ -3,6 +3,8 @@
 import struct
 
 from pynimcodec.bitman import BitArray, append_bits_to_buffer, extract_from_buffer
+from pynimcodec.utils import snake_case
+
 from ..constants import FieldType
 from .base_field import Field
 
@@ -19,18 +21,25 @@ class FloatField(Field):
         optional (bool): Flag indicates if the field is optional in the message.
     """
     
-    required_kwargs = ['size']
-    
     def __init__(self, name: str, **kwargs) -> None:
-        if not all(k in kwargs for k in self.required_kwargs):
-            raise ValueError(f'Missing kwarg(s) from {self.required_kwargs}')
-        kwargs.pop('type', None)
-        super().__init__(name, FIELD_TYPE, **kwargs)
+        kwargs['type'] = FIELD_TYPE
+        self._add_kwargs([], ['size'])
+        super().__init__(name, **kwargs)
+        self._supported = [32]
         self._size = 32
+        self.size = kwargs.get('size')
     
     @property
     def size(self) -> int:
         return self._size
+    
+    @size.setter
+    def size(self, value: int):
+        if value is None:
+            return
+        if value not in self._supported:
+            raise ValueError(f'Invalid size must be from [{self._supported}]')
+        self._size = value
     
     def decode(self, buffer: bytes, offset: int) -> 'tuple[int|float, int]':
         """Extracts the float value from a buffer."""
@@ -47,7 +56,7 @@ class FloatField(Field):
 
 def create(**kwargs) -> FloatField:
     """Create an FloatField."""
-    return FloatField(**kwargs)
+    return FloatField(**{snake_case(k): v for k, v in kwargs.items()})
 
 
 def decode(field: Field, buffer: bytes, offset: int) -> 'tuple[float, int]':

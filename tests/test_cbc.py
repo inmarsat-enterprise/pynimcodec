@@ -32,7 +32,7 @@ def int_field():
     })
 
 
-def test_create_field(int_field: IntField):
+def test_create_field():
     """"""
     created = create_field({
         'name': 'testInt',
@@ -235,3 +235,5 @@ def test_file_export():
     codec_list.append(test_message)
     export_json(test_path, codec_list)
     assert os.path.isfile(test_path)
+    imported = import_json(test_path)
+    assert imported == codec_list

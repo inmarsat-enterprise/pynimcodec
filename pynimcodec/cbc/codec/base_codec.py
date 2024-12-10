@@ -1,5 +1,6 @@
 """Base classes for Compact Binary Codec."""
 
+import warnings
 from typing import TypeVar
 
 T = TypeVar('T')
@@ -8,16 +9,34 @@ T = TypeVar('T')
 class CbcCodec:
     """The base class for all CBC codecs."""
     
-    required_args = ['name']
-    
-    def __init__(self, name: str, description: str = None) -> None:
+    def __init__(self, name: str, **kwargs) -> None:
+        self._add_kwargs([], ['description'])
         if not isinstance(name, str) or name.strip() == '':
             raise ValueError('Invalid name must be non-empty string')
+        req_kwargs: 'list[str]' = getattr(self, '_req_kwargs') or []
+        if req_kwargs and not all(k in kwargs for k in req_kwargs):
+            raise ValueError(f'{self.__class__.__name__} {name}'
+                             f' missing kwarg(s) from {req_kwargs}')
+        opt_kwargs: 'list[str]' = getattr(self, '_opt_kwargs') or []
+        for k in kwargs:
+            if k not in (req_kwargs + opt_kwargs):
+                warnings.warn(f'{self.__class__.__name__} {name}'
+                              f' unsupported kwarg: {k}')
         self._name = None
         self.name = name
         self._description = None
-        self.description = description   # validates value
+        self.description = kwargs.get('description')   # validates value
     
+    def _add_kwargs(self, req: 'list[str]', opt: 'list[str]'):
+        for prop in ['_req_kwargs', '_opt_kwargs']:
+            if not hasattr(self, prop):
+                setattr(self, prop, [])
+        for props in [req, opt]:
+            prop = self._req_kwargs if props == req else self._opt_kwargs
+            for k in props:
+                if k not in prop:
+                    prop.append(k)
+
     @property
     def name(self) -> str:
         return self._name

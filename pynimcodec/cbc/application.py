@@ -3,6 +3,7 @@
 from enum import Enum
 
 from pynimcodec.utils import camel_case
+
 from .message import Messages, create_message
 
 

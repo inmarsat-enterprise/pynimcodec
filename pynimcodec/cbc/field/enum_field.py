@@ -1,6 +1,8 @@
 """Enumerated value field class and methods."""
 
 from pynimcodec.bitman import BitArray, append_bits_to_buffer, extract_from_buffer
+from pynimcodec.utils import snake_case
+
 from ..constants import FieldType
 from .base_field import Field
 
@@ -20,18 +22,14 @@ class EnumField(Field):
             lookup values.
     """
     
-    required_kwargs = ['size', 'enum']
-    
     def __init__(self, name: str, **kwargs) -> None:
-        if not all(k in kwargs for k in self.required_kwargs):
-            raise ValueError(f'Missing kwarg(s) from {self.required_kwargs}')
-        kwargs.pop('type', None)
-        super().__init__(name, FIELD_TYPE, **kwargs)
+        kwargs['type'] = FIELD_TYPE
+        self._add_kwargs(['size', 'enum'], [])
+        super().__init__(name, **kwargs)
         self._size = 0
         self.size = kwargs.get('size')
         self._enum = {}
-        if kwargs.get('enum'):
-            self.enum = kwargs.get('enum')
+        self.enum = kwargs.get('enum')
     
     @property
     def size(self) -> int:
@@ -88,7 +86,7 @@ class EnumField(Field):
 
 def create(**kwargs) -> EnumField:
     """Create an EnumField."""
-    return EnumField(**kwargs)
+    return EnumField(**{snake_case(k): v for k, v in kwargs.items()})
 
 
 def decode(field: Field, buffer: bytes, offset: int) -> 'tuple[str, int]':

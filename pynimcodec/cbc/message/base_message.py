@@ -1,5 +1,6 @@
 """Compact Binary Codec Message class and methods."""
 
+import warnings
 from enum import Enum
 
 import aiocoap
@@ -7,39 +8,37 @@ import aiocoap
 from pynimcodec.bitman import append_bytes_to_buffer
 from pynimcodec.cbc.codec.base_codec import CbcCodec, CodecList
 from pynimcodec.cbc.constants import MessageDirection
-from pynimcodec.cbc.field.base_field import Fields, encode_fields, decode_fields
+from pynimcodec.cbc.field.base_field import Field, Fields, decode_fields, encode_fields
 from pynimcodec.cbc.field.common import create_field
-from pynimcodec.utils import camel_case
+from pynimcodec.utils import camel_case, snake_case
 
 
 class Message(CbcCodec):
     """A message data structure."""
     
-    required_args = ['name', 'direction', 'message_key', 'fields']
-    
-    def __init__(self,
-                 name: str,
-                 direction: MessageDirection,
-                 message_key: int,
-                 fields: Fields,
-                 **kwargs) -> None:
-        super().__init__(name, kwargs.pop('description', None))
+    def __init__(self, name: str, **kwargs) -> None:
+        self._add_kwargs(['direction', 'message_key', 'fields'],
+                         ['coap_compatible', 'vsat_reserved', 'nimo_compatible'])
+        super().__init__(name, **kwargs)
         self._direction: MessageDirection = None
         self._message_key: int = None
         self._fields: Fields = None
         self._coap_compatible: bool = kwargs.get('coap_compatible', True)
         self._vsat_reserved: bool = kwargs.get('vsat_reserved', False)
         self._nimo_compatible: bool = kwargs.get('nimo_compatible', False)
-        self.direction = direction
-        self.message_key = message_key
-        self.fields = fields
+        self.direction = kwargs.get('direction')
+        self.message_key = kwargs.get('message_key')
+        self.fields = kwargs.get('fields')
     
     @property
     def direction(self) -> MessageDirection:
         return self._direction
     
     @direction.setter
-    def direction(self, value: MessageDirection):
+    def direction(self, value: 'MessageDirection|str'):
+        if isinstance(value, str):
+            if value in [e.value for e in MessageDirection]:
+                value = MessageDirection(value)
         if not isinstance(value, MessageDirection):
             raise ValueError('Invalid direction type')
         self._direction = value
@@ -53,11 +52,11 @@ class Message(CbcCodec):
         if not isinstance(value, int) or value not in range(0, 65536):
             raise ValueError('message_key must be a 16-bit unsigned integer')
         if self._coap_compatible and value < 49152:
-            raise ValueError('message_key conflict with CoAP compatibility')
+            warnings.warn('message_key conflict with CoAP compatibility')
         if not self._vsat_reserved and value > 65279:
-            raise ValueError('message_key conflict with Viasat reserved range')
+            warnings.warn('message_key conflict with Viasat reserved range')
         if self._nimo_compatible and value not in range(32768, 65280):
-            raise ValueError('message_key conflict with NIMO compatibility')
+            warnings.warn('message_key conflict with NIMO compatibility')
         self._message_key = value
 
     @property
@@ -93,6 +92,13 @@ class Message(CbcCodec):
         remaining = { camel_case(k): raw[k] for k in raw if k not in key_order }
         reordered.update(remaining)
         return reordered
+
+    @classmethod
+    def from_json(cls, content: dict) -> 'Message':
+        """Create a field from a JSON-style content dictionary."""
+        if not isinstance(content, dict) or not content:
+            raise ValueError('Invalid content.')
+        return cls(**{snake_case(k): v for k, v in content.items()})
     
 
 class Messages(CodecList[Message]):
@@ -182,21 +188,22 @@ def create_message(obj: dict) -> Message:
     """Creates a Message from a dictionary definition."""
     if not isinstance(obj, dict):
         raise ValueError('Invalid object to create Message.')
-    if 'messageKey' in obj:
-        obj['message_key'] = obj.pop('messageKey')
-    if not all(k in obj for k in Message.required_args):
-        raise ValueError(f'Missing required argument ({Message.required_args})')
-    valid_msgdir = [e.value for e in MessageDirection]
-    if not isinstance(obj['direction'], MessageDirection):
-        if obj['direction'] not in valid_msgdir:
-            raise ValueError(f'Invalid Message direction ({valid_msgdir})')
-        obj['direction'] = MessageDirection(obj['direction'])
-    if not isinstance(obj['fields'], list):
+    # if 'messageKey' in obj:
+    #     obj['message_key'] = obj.pop('messageKey')
+    # if not all(camel_case(k) in obj for k in Message._required_args):
+    #     raise ValueError(f'Missing required argument ({Message._required_args})')
+    # valid_msgdir = [e.value for e in MessageDirection]
+    # if not isinstance(obj['direction'], MessageDirection):
+    #     if obj['direction'] not in valid_msgdir:
+    #         raise ValueError(f'Invalid Message direction ({valid_msgdir})')
+    #     obj['direction'] = MessageDirection(obj['direction'])
+    if 'fields' not in obj or not isinstance(obj['fields'], (list, Fields)):
         raise ValueError('Invalid fields definition')
     for i, field in enumerate(obj['fields']):
-        obj['fields'][i] = create_field(field)
+        if not isinstance(field, Field):
+            obj['fields'][i] = create_field(field)
     obj['fields'] = Fields(obj['fields'])
-    return Message(**obj)
+    return Message(**{snake_case(k): v for k, v in obj.items()})
 
 
 def decode_message(buffer: bytes, **kwargs) -> dict:

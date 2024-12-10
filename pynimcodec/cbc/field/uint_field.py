@@ -1,9 +1,11 @@
 """Unsigned integer field class and methods."""
 
 from pynimcodec.bitman import BitArray, append_bits_to_buffer, extract_from_buffer
+from pynimcodec.utils import snake_case
+
 from ..constants import FieldType
 from .base_field import Field
-from .calc import calc_encode, calc_decode
+from .calc import calc_decode, calc_encode
 
 FIELD_TYPE = FieldType.UINT
 
@@ -21,20 +23,16 @@ class UintField(Field):
         decalc (str): Optional post-decoding math expression to apply to value.
     """
     
-    required_kwargs = ['size']
-    optional_kwargs = ['calc', 'decalc']
-    
     def __init__(self, name: str, **kwargs) -> None:
-        if not all(k in kwargs for k in self.required_kwargs):
-            raise ValueError(f'Missing kwarg(s) from {self.required_kwargs}')
-        kwargs.pop('type', None)
-        super().__init__(name, FIELD_TYPE, **kwargs)
+        kwargs['type'] = FIELD_TYPE
+        self._add_kwargs(['size'], ['calc', 'decalc'])
+        super().__init__(name, **kwargs)
         self._size = 0
         self.size = kwargs.get('size')
-        self._encalc = ''
-        self.encalc = kwargs.get('encalc', '')
-        self._decalc = ''
-        self.decalc = kwargs.get('decalc', '')
+        self._encalc: 'str|None' = None
+        self.encalc = kwargs.get('encalc')
+        self._decalc: 'str|None' = None
+        self.decalc = kwargs.get('decalc')
     
     @property
     def size(self) -> int:
@@ -47,28 +45,34 @@ class UintField(Field):
         self._size = value
     
     @property
-    def encalc(self) -> str:
+    def encalc(self) -> 'str|None':
         return self._encalc
     
     @encalc.setter
-    def encalc(self, expr: str):
-        try:
-            calc_encode(expr, -1)
-            self._encalc = expr
-        except TypeError as exc:
-            raise ValueError('Invalid expression.') from exc
+    def encalc(self, expr: 'str|None'):
+        if expr is None or expr == '':
+            self._encalc = None
+        else:
+            try:
+                calc_encode(expr, -1)
+                self._encalc = expr
+            except TypeError as exc:
+                raise ValueError('Invalid expression.') from exc
     
     @property
-    def decalc(self) -> str:
+    def decalc(self) -> 'str|None':
         return self._decalc
     
     @decalc.setter
-    def decalc(self, expr: str):
-        try:
-            calc_decode(expr, -1)
-            self._decalc = expr
-        except TypeError as exc:
-            raise ValueError('Invalid expression.') from exc
+    def decalc(self, expr: 'str|None'):
+        if expr is None or expr == '':
+            self._decalc = None
+        else:
+            try:
+                calc_decode(expr, -1)
+                self._decalc = expr
+            except TypeError as exc:
+                raise ValueError('Invalid expression.') from exc
     
     @property
     def _max_value(self) -> int:
@@ -89,7 +93,7 @@ class UintField(Field):
 
 def create(**kwargs) -> UintField:
     """Create an UintField."""
-    return UintField(**kwargs)
+    return UintField(**{snake_case(k): v for k, v in kwargs.items()})
 
 
 def decode(field: Field, buffer: bytes, offset: int) -> 'tuple[int|float, int]':

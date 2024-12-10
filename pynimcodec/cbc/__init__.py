@@ -1,15 +1,16 @@
 """Classes and methods exposed for Compact Binary Codec."""
 
+from .application import Application
 from .constants import FieldType, MessageDirection
 from .field import (
-    Field,
-    Fields,
     ArrayField,
-    BitmaskField,
     BitmaskArrayField,
+    BitmaskField,
     BoolField,
     DataField,
     EnumField,
+    Field,
+    Fields,
     FloatField,
     IntField,
     StringField,
@@ -19,10 +20,11 @@ from .field import (
     decode_field,
     encode_field,
 )
-from .message import Message, Messages, create_message, decode_message, encode_message
 from .fileparser import export_json, import_json
+from .message import Message, Messages, create_message, decode_message, encode_message
 
 __all__ = [
+    'Application',
     'Message',
     'Messages',
     'MessageDirection',

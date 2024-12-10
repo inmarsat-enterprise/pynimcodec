@@ -1,6 +1,12 @@
 """Array field class and methods."""
 
-from pynimcodec.bitman import append_bytes_to_buffer, extract_from_buffer, append_bits_to_buffer
+from pynimcodec.bitman import (
+    append_bits_to_buffer,
+    append_bytes_to_buffer,
+    extract_from_buffer,
+)
+from pynimcodec.utils import snake_case
+
 from ..constants import FieldType
 from .base_field import Field
 from .field_length import decode_field_length, encode_field_length
@@ -21,14 +27,10 @@ class ArrayField(Field):
         fields (Field[]): A list of fields defining columns of the array.
     """
     
-    required_kwargs = ['size', 'fields']
-    optional_kwargs = ['fixed']
-    
     def __init__(self, name: str, **kwargs) -> None:
-        if not all(k in kwargs for k in self.required_kwargs):
-            raise ValueError(f'Missing kwarg(s) from {self.required_kwargs}')
-        kwargs.pop('type', None)
-        super().__init__(name, FIELD_TYPE, **kwargs)
+        kwargs['type'] = FIELD_TYPE
+        self._add_kwargs(['size', 'fields'], ['fixed'])
+        super().__init__(name, **kwargs)
         self._size = 0
         self.size = kwargs.get('size')
         self._fixed = False
@@ -82,7 +84,7 @@ class ArrayField(Field):
 
 def create(**kwargs) -> ArrayField:
     """Create a ArrayField."""
-    return ArrayField(**kwargs)
+    return ArrayField(**{snake_case(k): v for k, v in kwargs.items()})
 
 
 def decode(field: Field, buffer: bytes, offset: int) -> 'tuple[list, int]':

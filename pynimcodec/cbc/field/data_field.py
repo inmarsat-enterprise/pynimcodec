@@ -1,6 +1,8 @@
 """Data field class and methods."""
 
 from pynimcodec.bitman import append_bytes_to_buffer, extract_from_buffer
+from pynimcodec.utils import snake_case
+
 from ..constants import FieldType
 from .base_field import Field
 from .field_length import decode_field_length, encode_field_length
@@ -20,14 +22,10 @@ class DataField(Field):
         fixed (bool): Flag indicating if the value should be padded or truncated.
     """
     
-    required_kwargs = ['size']
-    optional_kwargs = ['fixed']
-    
     def __init__(self, name: str, **kwargs) -> None:
-        if not all(k in kwargs for k in self.required_kwargs):
-            raise ValueError(f'Missing kwarg(s) from {self.required_kwargs}')
-        kwargs.pop('type', None)
-        super().__init__(name, FIELD_TYPE, **kwargs)
+        kwargs['type'] = FIELD_TYPE
+        self._add_kwargs(['size'], ['fixed'])
+        super().__init__(name, **kwargs)
         self._size = 0
         self.size = kwargs.get('size')
         self._fixed = False
@@ -68,7 +66,7 @@ class DataField(Field):
 
 def create(**kwargs) -> DataField:
     """Create a DataField."""
-    return DataField(**kwargs)
+    return DataField(**{snake_case(k): v for k, v in kwargs.items()})
 
 
 def decode(field: Field, buffer: bytes, offset: int) -> 'tuple[bytes, int]':

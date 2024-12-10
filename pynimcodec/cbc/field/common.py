@@ -3,11 +3,22 @@
 from typing import Any
 
 from pynimcodec.bitman import extract_from_buffer
+
 from ..constants import FieldType
+from . import (
+    array_field,
+    bitmask_field,
+    bitmaskarray_field,
+    bool_field,
+    data_field,
+    enum_field,
+    float_field,
+    int_field,
+    string_field,
+    struct_field,
+    uint_field,
+)
 from .base_field import Field
-from . import (array_field, bitmask_field, bitmaskarray_field, bool_field,
-               data_field, enum_field, float_field, int_field, string_field,
-               struct_field, uint_field)
 
 __all__ = ['create_field', 'decode_field', 'encode_field']
 

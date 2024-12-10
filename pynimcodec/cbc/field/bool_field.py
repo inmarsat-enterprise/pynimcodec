@@ -1,6 +1,8 @@
 """Boolean field class and methods."""
 
 from pynimcodec.bitman import append_bits_to_buffer, extract_from_buffer
+from pynimcodec.utils import snake_case
+
 from ..constants import FieldType
 from .base_field import Field
 
@@ -18,8 +20,8 @@ class BoolField(Field):
     """
     
     def __init__(self, name: str, **kwargs) -> None:
-        kwargs.pop('type', None)
-        super().__init__(name, FIELD_TYPE, **kwargs)
+        kwargs['type'] = FIELD_TYPE
+        super().__init__(name, **kwargs)
     
     def decode(self, buffer: bytes, offset: int) -> 'tuple[int|float, int]':
         """Extracts the boolean value from a buffer."""
@@ -36,7 +38,7 @@ class BoolField(Field):
 
 def create(**kwargs) -> BoolField:
     """Create a BoolField."""
-    return BoolField(**kwargs)
+    return BoolField(**{snake_case(k): v for k, v in kwargs.items()})
 
 
 def decode(field: Field, buffer: bytes, offset: int) -> 'tuple[int|float, int]':
