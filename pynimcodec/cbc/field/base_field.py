@@ -1,5 +1,6 @@
 """Base class for all Fields."""
 
+import warnings
 from enum import Enum
 from typing import Any
 
@@ -130,7 +131,7 @@ def decode_fields(codec: CbcCodec,
     fields: Fields = getattr(codec, 'fields')
     if not fields:
         raise ValueError('Codec has no fields attribute.')
-    values = []
+    values = {}
     for field in fields:
         if field.optional:
             present = extract_from_buffer(buffer, offset, 1)
@@ -138,7 +139,7 @@ def decode_fields(codec: CbcCodec,
             if not present:
                 continue
         value, offset = field.decode(buffer, offset)
-        values.append({field.name: value})
+        values[field.name] = value
     return ( values, offset )
 
 
@@ -162,27 +163,17 @@ def encode_fields(content: dict,
     Raises:
         ValueError: If the content or codec is missing `fields` definition.
     """
-    
-    def get_content_field(name: str) -> 'Field|None':
-        """Get a field object from a parent object with value key."""
-        for cfield in content['value']:
-            assert isinstance(cfield, dict)
-            if name in cfield:
-                return cfield[name]
-    
     if not isinstance(content, dict) or 'value' not in content:
         raise ValueError('Content missing value.')
     fields: Fields = getattr(codec, 'fields')
     if not fields:
         raise ValueError('Codec has no fields attribute.')
-    for i, value in enumerate(content['value']):
-        if not isinstance(value, dict):
-            raise ValueError(f'Invalid fields row {i} must be dictionary.')
-        cname = list(value.keys())[0]
-        if not any(field.name == cname for field in fields):
-            raise ValueError(f'No field {cname} found in codec {codec.name}.')
+    for k, v in content['value'].items():
+        if not any(field.name == k for field in fields):
+            warnings.warn(f'No field {k} found in codec {codec.name}')
+    values: dict = content['value']
     for field in fields:
-        value = get_content_field(field.name)
+        value = values[field.name] if field.name in values else None
         if value is not None:
             if field.optional is True:
                 buffer = append_bits_to_buffer([1], buffer, offset)

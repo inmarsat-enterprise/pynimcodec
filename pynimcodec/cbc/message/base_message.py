@@ -311,8 +311,8 @@ def encode_message(content: dict, **kwargs) -> 'bytes|aiocoap.Message':
     req_keys = ['name', 'value']
     if not isinstance(content, dict) or not all(k in content for k in req_keys):
         raise ValueError(f'Content missing keys ({req_keys})')
-    if not all(isinstance(f, dict) for f in content['value']):
-        raise ValueError('Invalid content values.')
+    if not isinstance(content['value'], dict):
+        raise ValueError('Invalid content value.')
     messages = kwargs.get('messages')
     message = kwargs.get('message')
     nim = kwargs.get('nim') is True

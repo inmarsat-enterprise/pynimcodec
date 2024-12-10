@@ -158,17 +158,15 @@ def test_struct_field():
     offset = 0
     test_val = {
         'name': 'testStruct',
-        'value': [
-            {
-                'testNestedInt': 42,
-            }
-        ]
+        'value': {
+            'testNestedInt': 42,
+        }
     }
     buffer, new_offset = encode_field(test_field, test_val, buffer, offset)
     assert len(buffer) == 1
     decoded, _ = decode_field(test_field, buffer, offset)
     assert 'value' in decoded and decoded['value'] == test_val['value']
-    test_val['value'].append({'testOptionalString': 'hello'})
+    test_val['value']['testOptionalString'] = 'hello'
     buffer, new_offset = encode_field(test_field, test_val, buffer, offset)
     assert len(buffer) == 7
     decoded, _ = decode_field(test_field, buffer, offset)
@@ -189,20 +187,20 @@ def test_message():
     assert isinstance(test_message, Message)
     test_val = {
         'name': 'testMoMessage',
-        'value': [
-            { 'testUintField': 3 },
-            # { 'testString': 'hello' },
-        ]
+        'value': {
+            'testUintField': 3,
+            # 'testString': 'hello',
+        }
     }
     encoded = encode_message(test_val, message=test_message)
-    assert len(encoded) == 7 if len(test_val['value']) == 2 else 1
+    assert len(encoded) == 7 if len(test_val['value'].keys()) == 2 else 1
     decoded = decode_message(encoded, message=test_message)
     assert decoded == test_val
     encoded = encode_message(test_val, message=test_message, nim=True)
-    assert len(encoded) == 9 if len(test_val['value']) == 2 else 3
+    assert len(encoded) == 9 if len(test_val['value'].keys()) == 2 else 3
     coap_message = encode_message(test_val, message=test_message, coap=True)
     assert coap_message.mid == test_message.message_key
-    assert len(coap_message.payload) == 7 if len(test_val['value']) == 2 else 1
+    assert len(coap_message.payload) == 7 if len(test_val['value'].keys()) == 2 else 1
 
 
 def test_file_import():
@@ -214,9 +212,9 @@ def test_file_import():
         'name': 'TestMessage',
         # 'direction': 'UPLINK',
         # 'messageKey': 49152,
-        'value': [
-            { 'exampleField': 42 }
-        ]
+        'value': {
+            'exampleField': 42,
+        }
     }
     encoded = app_codec.encode(test_val)
     assert len(encoded) == 1

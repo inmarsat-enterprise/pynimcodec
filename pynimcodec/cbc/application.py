@@ -3,11 +3,12 @@
 from enum import Enum
 
 from pynimcodec.utils import camel_case
-from .message import Messages
+from .message import Messages, create_message
 
 
 class Application:
     """A wrapper for Messages providing JSON file context/metadata."""
+    
     def __init__(self, **kwargs) -> None:
         self._application = 'cbcApplication'
         self.application = kwargs.get('name', self._application)
@@ -93,3 +94,15 @@ class Application:
         remaining = { camel_case(k): raw[k] for k in raw if k not in key_order }
         reordered.update(remaining)
         return reordered
+
+
+def create_application(obj: dict) -> Application:
+    """Creates a Message from a dictionary definition."""
+    if not isinstance(obj, dict):
+        raise ValueError('Invalid object to create Application.')
+    if not isinstance(obj['messages'], list):
+        raise ValueError('Invalid messages list')
+    for i, msg in enumerate(obj['message']):
+        obj['messages'][i] = create_message(msg)
+    obj['messages'] = Messages(obj['fields'])
+    return Application(**obj)
