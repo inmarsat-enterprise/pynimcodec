@@ -189,7 +189,7 @@ def test_message():
         'name': 'testMoMessage',
         'value': {
             'testUintField': 3,
-            # 'testString': 'hello',
+            'testString': 'hello',
         }
     }
     encoded = encode_message(test_val, message=test_message)
@@ -198,9 +198,14 @@ def test_message():
     assert decoded == test_val
     encoded = encode_message(test_val, message=test_message, nim=True)
     assert len(encoded) == 9 if len(test_val['value'].keys()) == 2 else 3
+    decoded = decode_message(encoded, message=test_message, nim=True)
+    assert decoded == test_val
     coap_message = encode_message(test_val, message=test_message, coap=True)
     assert coap_message.mid == test_message.message_key
     assert len(coap_message.payload) == 7 if len(test_val['value'].keys()) == 2 else 1
+    # coap_encoded = coap_message.encode()
+    # decoded = decode_message(coap_encoded, message=test_message, coap=True)
+    assert decoded == test_val
 
 
 def test_file_import():

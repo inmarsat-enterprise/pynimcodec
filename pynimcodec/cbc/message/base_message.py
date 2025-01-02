@@ -269,19 +269,21 @@ def decode_message(buffer: bytes, **kwargs) -> dict:
                     if m.message_key == message_key and m.direction == direction:
                         message = m
                         break
-        if nim and coap:
+    # if nim and coap:
+    #     raise ValueError('nim and coap flags mutually exclusive')
+    # if not message and not ((nim or coap) and direction):
+    #     raise ValueError('Missing name or message_key/nim/coap and direction')
+    if nim:
+        if coap:
             raise ValueError('nim and coap flags mutually exclusive')
-        if not message and not ((nim or coap) and direction):
-            raise ValueError('Missing name or message_key/nim/coap and direction')
-        if nim:
-            message_key = int.from_bytes(buffer[0:2])
-            offset = 16
-        elif coap:
-            coap_message = aiocoap.Message.decode(buffer)
-            message_key = coap_message.mid
-            buffer = coap_message.payload
-        if not message:
-            message = messages.by_key(message_key, direction)
+        message_key = int.from_bytes(buffer[0:2], 'big')
+        offset = 16
+    elif coap:
+        coap_message = aiocoap.Message.decode(buffer)
+        message_key = coap_message.mid
+        buffer = coap_message.payload
+    if not message:
+        message = messages.by_key(message_key, direction)
     if message_key and message_key != message.message_key:
         raise ValueError('Mismatch between provided/derived message_key')
     decoded = { 'name': message.name }
