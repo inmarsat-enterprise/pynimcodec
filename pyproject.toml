@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pynimcodec"
-version = "0.4.2"
+version = "0.4.3"
 description = "Codecs for Satellite IoT messaging implemented in Python."
 authors = ["geoffbrucepayne <geoff.bruce-payne@inmarsat.com>"]
 license = "Apache2.0"
