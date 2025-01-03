@@ -1,13 +1,20 @@
+import math
 import os
 import pytest
 
 from pynimcodec.bitman import extract_from_buffer
 from pynimcodec.cbc import (
+    ArrayField,
+    BitmaskArrayField,
+    BitmaskField,
     BoolField,
+    DataField,
+    EnumField,
+    FloatField,
     IntField,
-    UintField,
     StringField,
     StructField,
+    UintField,
     create_field,
     encode_field,
     decode_field,
@@ -32,14 +39,14 @@ def int_field():
     })
 
 
-def test_create_field():
+def test_create_field(int_field):
     """"""
     created = create_field({
         'name': 'testInt',
         'type': 'int',
         'size': 4,
     })
-    assert isinstance(int_field, IntField)
+    assert isinstance(created, IntField)
     assert created == int_field
 
 
@@ -157,20 +164,171 @@ def test_struct_field():
     buffer = bytearray()
     offset = 0
     test_val = {
-        'name': 'testStruct',
-        'value': {
-            'testNestedInt': 42,
-        }
+        'testNestedInt': 42,
     }
     buffer, new_offset = encode_field(test_field, test_val, buffer, offset)
     assert len(buffer) == 1
     decoded, _ = decode_field(test_field, buffer, offset)
-    assert 'value' in decoded and decoded['value'] == test_val['value']
-    test_val['value']['testOptionalString'] = 'hello'
+    assert 'value' in decoded and decoded['value'] == test_val
+    test_val['testOptionalString'] = 'hello'
     buffer, new_offset = encode_field(test_field, test_val, buffer, offset)
     assert len(buffer) == 7
     decoded, _ = decode_field(test_field, buffer, offset)
-    assert 'value' in decoded and decoded['value'] == test_val['value']
+    assert 'value' in decoded and decoded['value'] == test_val
+
+
+def test_array_field():
+    """"""
+    test_field = create_field({
+        'name': 'testArray',
+        'type': 'array',
+        'size': 10,
+        'fields': [
+            {
+                'name': 'propName',
+                'type': 'string',
+                'size': 50
+            },
+            {
+                'name': 'propValue',
+                'type': 'uint',
+                'size': 32
+            }
+        ]
+    })
+    assert isinstance(test_field, ArrayField)
+    test_val = [
+        { 'propName': 'property1', 'propValue': 1 },
+        { 'propName': 'property2', 'propValue': 2 },
+    ]
+    buffer = bytearray()
+    offset = 0
+    buffer, new_offset = encode_field(test_field, test_val, buffer, offset)
+    assert len(buffer) == 29
+    decoded, _ = decode_field(test_field, buffer, 0)
+    assert decoded['name'] == test_field.name
+    assert decoded['value'] == test_val
+
+
+def test_bitmask_field():
+    """"""
+    test_field = create_field({
+        'name': 'testBitmask',
+        'type': 'bitmask',
+        'size': 12,
+        'enum': {
+            '0': 'LSB',
+            '11': 'MSB',
+        },
+    })
+    assert isinstance(test_field, BitmaskField)
+    test_val = ['LSB', 'MSB']
+    buffer = bytearray()
+    offset = 0
+    buffer, _ = encode_field(test_field, test_val, buffer, offset)
+    assert len(buffer) == 2
+    assert int.from_bytes(buffer, 'big') == 0x0801 << (16 - 12)
+    decoded, _ = decode_field(test_field, buffer, 0)
+    assert decoded['name'] == test_field.name
+    assert decoded['value'] == test_val
+    test_val_2 = 0x801
+    buffer, _ = encode_field(test_field, test_val_2, buffer, offset)
+    assert int.from_bytes(buffer, 'big') == 0x801 << (16 - 12)
+    decoded2, _ = decode_field(test_field, buffer, 0)
+    assert decoded2['value'] == test_val
+
+
+def test_bitmaskarray_field():
+    """"""
+    test_field = create_field({
+        'name': 'testBitmaskArray',
+        'type': 'bitmaskarray',
+        'size': 3,
+        'enum': {
+            '0': 'case1',
+            '1': 'case2',
+            '2': 'case3',
+        },
+        'fields': [
+            {
+                'name': 'successes',
+                'type': 'uint',
+                'size': 4
+            },
+            {
+                'name': 'failures',
+                'type': 'uint',
+                'size': 4
+            }
+        ]
+    })
+    assert isinstance(test_field, BitmaskArrayField)
+    test_val = {
+        'case1': [{'successes': 3, 'failures': 1}]
+    }
+    buffer = bytearray()
+    offset = 0
+    buffer, _ = encode_field(test_field, test_val, buffer, offset)
+    assert len(buffer) == math.ceil((3 + 4 + 4)/ 8)
+    decoded, _ = decode_field(test_field, buffer, 0)
+    assert decoded['value'] == test_val
+
+
+def test_data_field():
+    """"""
+    test_field = create_field({
+        'name': 'testData',
+        'type': 'data',
+        'size': 100,
+    })
+    assert isinstance(test_field, DataField)
+    test_val = bytes([0,1,2,3])
+    buffer = bytearray()
+    offset = 0
+    buffer, _ = encode_field(test_field, test_val, buffer, offset)
+    assert len(buffer) == len(test_val) + 1 if len(test_val) < 128 else 2
+    decoded, _ = decode_field(test_field, buffer, 0)
+    assert decoded['value'] == test_val
+
+
+def test_enum_field():
+    """"""
+    test_field = create_field({
+        'name': 'testEnum',
+        'type': 'enum',
+        'size': 5,
+        'enum': {
+            '0': 'zero',
+            '1': 'one',
+        }
+    })
+    assert isinstance(test_field, EnumField)
+    test_val = 'one'
+    buffer = bytearray()
+    offset = 0
+    encoded, _ = encode_field(test_field, test_val, buffer, offset)
+    assert len(encoded) == 1
+    assert encoded[0] == 1 << (8 - test_field.size)
+    decoded, _ = decode_field(test_field, buffer, 0)
+    assert decoded['value'] == test_val
+
+
+def test_float_field():
+    """"""
+    test_field = create_field({
+        'name': 'testFloat',
+        'type': 'float',
+        'size': 32,
+        'precision': 3,
+    })
+    assert isinstance(test_field, FloatField)
+    test_val = 42.123
+    buffer = bytearray()
+    offset = 0
+    encoded, _ = encode_field(test_field, test_val, buffer, offset)
+    assert len(encoded) == 4
+    decoded, _ = decode_field(test_field, buffer, offset)
+    assert decoded['value'] == test_val
 
 
 def test_message():
@@ -182,6 +340,17 @@ def test_message():
         'fields': [
             { 'name': 'testUintField', 'type': 'uint', 'size': 4 },
             { 'name': 'testString', 'type': 'string', 'size': 50, 'optional': True},
+            {
+                'name': 'testStruct',
+                'type': 'struct',
+                'fields': [
+                    {
+                        'name': 'value1',
+                        'type': 'int',
+                        'size': 16
+                    }
+                ],
+            }
         ]
     })
     assert isinstance(test_message, Message)
@@ -190,6 +359,9 @@ def test_message():
         'value': {
             'testUintField': 3,
             'testString': 'hello',
+            'testStruct': {
+                'value1': 1,
+            }
         }
     }
     encoded = encode_message(test_val, message=test_message)
