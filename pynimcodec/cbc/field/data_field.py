@@ -90,7 +90,7 @@ def decode(field: Field, buffer: bytes, offset: int) -> 'tuple[bytes, int]':
         length, offset = decode_field_length(buffer, offset)
     else:
         length = field.size
-    value = extract_from_buffer(buffer, offset, length * 8)
+    value = extract_from_buffer(buffer, offset, length * 8, as_buffer=True)
     return ( value, offset + length * 8 )
 
 

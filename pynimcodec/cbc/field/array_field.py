@@ -109,7 +109,7 @@ def decode(field: Field, buffer: bytes, offset: int) -> 'tuple[list, int]':
     else:
         rows = field.size
     value = []
-    while len(value) <= rows:
+    while len(value) < rows:
         decoded = {} if len(field.fields) > 1 else None
         for col in field.fields:
             if col.optional:

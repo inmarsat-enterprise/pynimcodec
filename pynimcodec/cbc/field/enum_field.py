@@ -141,7 +141,7 @@ def encode(field: EnumField,
     elif isinstance(value, str):
         if value not in field.enum.values():
             raise ValueError(f'Invalid value {value} not in enum.')
-        for k, v in field.enum:
+        for k, v in field.enum.items():
             if v == value:
                 key = k
                 break

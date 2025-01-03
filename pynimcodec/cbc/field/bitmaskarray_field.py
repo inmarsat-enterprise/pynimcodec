@@ -37,6 +37,9 @@ class BitmaskArrayField(Field):
         super().__init__(name, **kwargs)
         self._size = 0
         self.size = kwargs.get('size')
+        self._enum = {}
+        if kwargs.get('enum'):
+            self.enum = kwargs.get('enum')
         self._fields = []
         self.fields = kwargs.get('fields')
     
@@ -58,11 +61,12 @@ class BitmaskArrayField(Field):
     def enum(self, keys_values: 'dict[str, str]'):
         if not isinstance(keys_values, dict) or not keys_values:
             raise ValueError('Invalid enumeration dictionary.')
+        max_enum = self.size - 1
         for k in keys_values:
             try:
                 key_int = int(k)
-                if key_int < 0 or key_int > self.size:
-                    errmsg = f'Key {k} must be in range 0..{self.size}.'
+                if key_int < 0 or key_int > max_enum:
+                    errmsg = f'Key {k} must be in range 0..{max_enum}.'
                     raise ValueError(errmsg)
             except ValueError as exc:
                 errmsg = f'Invalid key {k} must be integer parsable.'
@@ -126,12 +130,13 @@ def decode(field: Field, buffer: bytes, offset: int) -> 'tuple[dict, int]':
     """
     if not isinstance(field, BitmaskArrayField):
         raise ValueError('Invalid field definition.')
-    bitmask, offset = extract_from_buffer(buffer, offset, field.size)
+    bitmask = extract_from_buffer(buffer, offset, field.size)
+    offset += field.size
     value_keys = []
     bits = BitArray.from_int(bitmask)
     for i, bit in enumerate(reversed(bits)):
         if bit:
-            value_keys.append(f'{i}')
+            value_keys.append(field.enum[f'{i}'])
     value = { k: [] for k in value_keys }
     for row in range(bin(bitmask).count('1')):
         decoded = {} if len(field.fields) > 1 else None
@@ -175,30 +180,32 @@ def encode(field: BitmaskArrayField,
         not all(isinstance(x, list) for x in value.values())):
         raise ValueError('Invalid value array.')
     bitmask = 0
-    for k in value:
+    tmp_buffer = bytearray()
+    tmp_offset = 0
+    for k, v in value.items():
         if k not in field.enum.values():
             raise ValueError(f'{k} not found in field enumeration.')
         for ek, ev in field.enum.items():
             if ev == k:
                 bitmask += 2**int(ek)
-    tmp_buffer = bytearray()
-    tmp_offset = 0
-    for i, row in enumerate(value):
-        for col in field.fields:
-            if col.optional:
-                present = 1 if not isinstance(row, dict) or col.name in row else 0
-                buffer = append_bits_to_buffer([present], buffer, offset)
-                offset += 1
-                if not present:
-                    continue
-            if not isinstance(row, dict):
-                if len(field.fields) > 1:
-                    raise ValueError(f'Row {i} missing column keys')
-                tmp_buffer, tmp_offset = col.encode(row, tmp_buffer, tmp_offset)
-            else:
-                if col.name not in row:
-                    raise ValueError(f'Row {i} missing {col.name}')
-                tmp_buffer, tmp_offset = col.encode(row[col.name], tmp_buffer, tmp_offset)
-    buffer = append_bits_to_buffer(BitArray.from_int(bitmask, field.size))
+        for i, row in enumerate(v):
+            for col in field.fields:
+                if col.optional:
+                    present = 1 if not isinstance(row, dict) or col.name in row else 0
+                    buffer = append_bits_to_buffer([present], buffer, offset)
+                    offset += 1
+                    if not present:
+                        continue
+                if not isinstance(row, dict):
+                    if len(field.fields) > 1:
+                        raise ValueError(f'Row {i} missing column keys')
+                    tmp_buffer, tmp_offset = col.encode(row, tmp_buffer, tmp_offset)
+                else:
+                    if col.name not in row:
+                        raise ValueError(f'Row {i} missing {col.name}')
+                    tmp_buffer, tmp_offset = col.encode(row[col.name], tmp_buffer, tmp_offset)
+    buffer = append_bits_to_buffer(BitArray.from_int(bitmask, field.size), buffer)
+    offset += field.size
     buffer = append_bytes_to_buffer(bytes(tmp_buffer), buffer, offset)
-    return ( buffer, offset + field.size + len(tmp_buffer) )
+    offset += tmp_offset
+    return ( buffer, offset )

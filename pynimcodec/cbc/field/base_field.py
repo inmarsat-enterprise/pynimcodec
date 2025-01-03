@@ -169,17 +169,16 @@ def encode_fields(content: dict,
     Raises:
         ValueError: If the content or codec is missing `fields` definition.
     """
-    if not isinstance(content, dict) or 'value' not in content:
+    if not isinstance(content, dict):
         raise ValueError('Content missing value.')
     fields: Fields = getattr(codec, 'fields')
     if not fields:
         raise ValueError('Codec has no fields attribute.')
-    for k, v in content['value'].items():
+    for k in content:
         if not any(field.name == k for field in fields):
             warnings.warn(f'No field {k} found in codec {codec.name}')
-    values: dict = content['value']
     for field in fields:
-        value = values[field.name] if field.name in values else None
+        value = content[field.name] if field.name in content else None
         if value is not None:
             if field.optional is True:
                 buffer = append_bits_to_buffer([1], buffer, offset)

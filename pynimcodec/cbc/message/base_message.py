@@ -348,7 +348,7 @@ def encode_message(content: dict, **kwargs) -> 'bytes|aiocoap.Message':
                                         buffer,
                                         offset)
         offset = 16
-    buffer, offset = encode_fields(content, message, buffer, offset)
+    buffer, offset = encode_fields(content['value'], message, buffer, offset)
     if coap:
         return aiocoap.Message(mid=message.message_key, payload=bytes(buffer))
     return bytes(buffer)            

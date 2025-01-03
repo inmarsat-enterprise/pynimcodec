@@ -50,14 +50,18 @@ class BitmaskField(Field):
     def enum(self, keys_values: 'dict[str, str]'):
         if not isinstance(keys_values, dict) or not keys_values:
             raise ValueError('Invalid enumeration dictionary.')
+        max_enum = self.size - 1
         for k in keys_values:
             try:
                 key_int = int(k)
-                if key_int < 0 or key_int > self.size:
-                    errmsg = f'Key {k} must be in range 0..{self.size}.'
+                if key_int < 0 or key_int > max_enum:
+                    errmsg = f'Key {k} must be in range 0..{max_enum}.'
                     raise ValueError(errmsg)
             except ValueError as exc:
-                errmsg = f'Invalid key {k} must be integer parsable.'
+                if not str(exc).startswith('Key'):
+                    errmsg = f'Invalid key {k} must be integer parsable.'
+                else:
+                    errmsg = str(exc)
                 raise ValueError(errmsg) from exc
         seen = set()
         for v in keys_values.values():

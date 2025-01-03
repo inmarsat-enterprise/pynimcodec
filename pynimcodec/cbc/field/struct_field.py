@@ -98,7 +98,4 @@ def encode(field: StructField,
     """
     if not isinstance(field, StructField):
         raise ValueError('Invalid field definition.')
-    required = ['name', 'value']
-    if not isinstance(value, dict) or not all(k in value for k in required):
-        raise ValueError(f'Missing required key ({required}).')
     return encode_fields(value, field, buffer, offset)
