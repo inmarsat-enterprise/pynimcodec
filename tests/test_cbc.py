@@ -28,6 +28,7 @@ from pynimcodec.cbc import (
     import_json,
     export_json,
 )
+from pynimcodec.cbc.field.calc import calc_decode, calc_encode
 
 
 @pytest.fixture
@@ -63,6 +64,48 @@ def test_int_field(int_field: IntField):
     with pytest.raises(ValueError) as exc_info:
         buffer, _ = encode_field(int_field, 15, buffer, 0)
     assert 'too large' in exc_info.value.args[0]
+
+
+@pytest.mark.parametrize('test_expr,v,expected', [
+    ('v*10', 42.2, 422),
+    ('v*10', -42.2, -422),
+    ('v*10', 42.26, 422),
+    ('round(v*10,0)', 42.26, 423),
+    ('v*1', 42.2, 42),
+    ('v/10', 422, 42),
+    ('v/2', 10, 5),
+    ('1+1', 3, None),
+    ('eval(open("/etc/password"))', 0, None),
+])
+def test_calc_encode(test_expr, v, expected):
+    """"""
+    if 'v' not in test_expr:
+        with pytest.raises(ValueError):
+            calc_encode(test_expr, v)
+    elif 'eval' in test_expr:
+        with pytest.raises(ValueError):
+            calc_encode(test_expr, v)
+    else:
+        assert calc_encode(test_expr, v) == expected
+
+
+@pytest.mark.parametrize('test_expr,v,expected', [
+    ('v+1', 1, 2),
+    ('v**3', 2, 8),
+    ('2**v-1', 3, 7),
+    ('v/10', 422, 42.2),
+    ('round(v/10**6,3)', 42123456, 42.123),
+    ('-v', 1, -1),
+    ('~v', -1, 1),
+    ('1+1', 3, None),
+])
+def test_calc_decode(test_expr, v, expected):
+    """"""
+    if 'v' not in test_expr:
+        with pytest.raises(ValueError):
+            calc_decode(test_expr, v)
+    else:
+        assert calc_decode(test_expr, v) == expected
 
 
 def test_int_field_calc(int_field: IntField):

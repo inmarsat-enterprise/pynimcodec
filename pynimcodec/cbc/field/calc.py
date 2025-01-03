@@ -16,6 +16,11 @@ operators = {
 }
 
 
+allowed_functions = {
+    'round': round,
+}
+
+
 def eval_(node):
     """Recursively evaluates the nodes of a mathematical expression."""
     if isinstance(node, ast.Constant):
@@ -25,6 +30,12 @@ def eval_(node):
         return operators[type(node.op)](eval_(node.left), eval_(node.right))
     elif isinstance(node, ast.UnaryOp):
         return operators[type(node.op)](eval_(node.operand))
+    elif isinstance(node, ast.Call):
+        if isinstance(node.func, ast.Name) and node.func.id in allowed_functions:
+            func = allowed_functions[node.func.id]
+            args = [eval_(arg) for arg in node.args]
+            return func(*args)
+        raise ValueError(f'Unsafe function: {node.func.id}')
     raise TypeError(node)
 
 
@@ -61,15 +72,3 @@ def calc_encode(encalc: str, decoded: 'int|float'):
         raise ValueError('Invalid decalc statement')
     expr = encalc.replace('v', f'{decoded}')
     return int(eval_(ast.parse(expr, mode='eval').body))
-
-
-if __name__ == '__main__':
-    print(calc_decode('v+1', 1))
-    print(calc_decode('v**3', 2))
-    print(calc_decode('2**v-1', 8))
-    print(calc_encode('v*10', 42.2))
-    print(calc_encode('v*10', -42.2))
-    print(calc_encode('v*10', 42.26))
-    print(calc_decode('v/10', 422))
-    print(calc_decode('-v', 1))
-    print(calc_decode('~v', -1))
