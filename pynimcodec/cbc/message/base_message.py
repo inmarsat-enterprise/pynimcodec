@@ -188,15 +188,6 @@ def create_message(obj: dict) -> Message:
     """Creates a Message from a dictionary definition."""
     if not isinstance(obj, dict):
         raise ValueError('Invalid object to create Message.')
-    # if 'messageKey' in obj:
-    #     obj['message_key'] = obj.pop('messageKey')
-    # if not all(camel_case(k) in obj for k in Message._required_args):
-    #     raise ValueError(f'Missing required argument ({Message._required_args})')
-    # valid_msgdir = [e.value for e in MessageDirection]
-    # if not isinstance(obj['direction'], MessageDirection):
-    #     if obj['direction'] not in valid_msgdir:
-    #         raise ValueError(f'Invalid Message direction ({valid_msgdir})')
-    #     obj['direction'] = MessageDirection(obj['direction'])
     if 'fields' not in obj or not isinstance(obj['fields'], (list, Fields)):
         raise ValueError('Invalid fields definition')
     for i, field in enumerate(obj['fields']):
@@ -269,10 +260,6 @@ def decode_message(buffer: bytes, **kwargs) -> dict:
                     if m.message_key == message_key and m.direction == direction:
                         message = m
                         break
-    # if nim and coap:
-    #     raise ValueError('nim and coap flags mutually exclusive')
-    # if not message and not ((nim or coap) and direction):
-    #     raise ValueError('Missing name or message_key/nim/coap and direction')
     if nim:
         if coap:
             raise ValueError('nim and coap flags mutually exclusive')
