@@ -25,7 +25,7 @@ class UintField(Field):
     
     def __init__(self, name: str, **kwargs) -> None:
         kwargs['type'] = FIELD_TYPE
-        self._add_kwargs(['size'], ['calc', 'decalc'])
+        self._add_kwargs(['size'], ['encalc', 'decalc'])
         super().__init__(name, **kwargs)
         self._size = 0
         self.size = kwargs.get('size')
