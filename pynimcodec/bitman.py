@@ -98,13 +98,13 @@ class BitArray(list):
             bits.extend(int(bit) for bit in f'{byte:08b}')
         return cls(*bits)
     
-    def read_int(self, signed: bool = False, start: int = 0, end: int = -1) -> int:
+    def read_int(self, signed: bool = False, start: int = 0, end: int|None = None) -> int:
         """Read the BitArray as an integer value.
         
         Args:
             signed (bool): If set, use two's complement. Default unsigned.
             start (int): The starting bit to read from (default 0)
-            end (int): The ending bit to read from (default -1 = end)
+            end (int): The ending bit to read from (default None = end of array)
         
         Returns:
             int: The integer value of the bits read.
@@ -114,21 +114,23 @@ class BitArray(list):
         """
         if not isinstance(start, int) or start < 0:
             raise ValueError('Start bit must be positive integer')
-        if not isinstance(end, int) or (end < start and end != -1):
-            raise ValueError('end must be >= start or -1')
+        if end is not None and (not isinstance(end, int) or (end < start)):
+            raise ValueError('end must be >= start or None')
         result = 0
         for i, bit in enumerate(reversed(self[start:end])):
             result += 2**i if bit else 0
         if signed and self[start]:
+            if end is None:
+                end = len(self)
             result -= (1 << (end - start))
         return result
     
-    def read_bytes(self, start: int = 0, end: int = -1) -> bytes:
+    def read_bytes(self, start: int = 0, end: int|None = None) -> bytes:
         """Read the BitArray as a data buffer.
         
         Args:
             start (int): The bit to start reading from (default beginning)
-            end (int): The bit to stop reading at (default -1 = end)
+            end (int): The bit to stop reading at (default None = end)
         
         Returns:
             bytes: The resulting buffer.
@@ -138,10 +140,8 @@ class BitArray(list):
         """
         if not isinstance(start, int) or start < 0:
             raise ValueError('start bit must be positive integer.')
-        if not isinstance(end, int) or (end < start and end != -1):
-            raise ValueError('end must be >= start or -1')
-        if end == -1:
-            end = len(self)
+        if end is not None and (not isinstance(end, int) or (end < start)):
+            raise ValueError('end must be >= start or None')
         extract = BitArray(*self[start:end])
         # create a bytearray for the full number of bytes needed then pack bits
         result = bytearray((len(extract) + 7) // 8)
@@ -249,7 +249,7 @@ def extract_from_buffer(buffer: bytes,
 
 
 def append_bits_to_buffer(bit_array: BitArray,
-                          buffer: bytearray,
+                          buffer: 'bytearray|bytes',
                           offset: int = 0,
                           ) -> bytearray:
     """Add bits to a buffer at a bit offset.
@@ -269,34 +269,35 @@ def append_bits_to_buffer(bit_array: BitArray,
     if (not isinstance(bit_array, (BitArray, list)) or
         not all(b in (0, 1) for b in bit_array)):
         raise ValueError('Invalid BitArray')
-    if not isinstance(buffer, bytearray):
+    if not isinstance(buffer, (bytearray, bytes)):
         raise ValueError('Invalid buffer')
     if not isinstance(offset, int) or offset < 0:
         raise ValueError('offset must be a non-negative integer')
-    if len(buffer) == 0:
-        buffer.append(0)
-    if offset > len(buffer) * 8:
+    newbuffer = bytearray(buffer)
+    if len(newbuffer) == 0:
+        newbuffer.append(0)
+    if offset > len(newbuffer) * 8:
         raise ValueError(f'offset {offset} exceeds the current buffer size.')
     total_bits = offset + len(bit_array)
     required_bytes = (total_bits + 7) // 8
-    while len(buffer) < required_bytes:
-        buffer.append(0)
+    while len(newbuffer) < required_bytes:
+        newbuffer.append(0)
     byte_offset = offset // 8
     bit_offset_in_byte = offset % 8
     for bit in bit_array:
         if bit == 1:
-            buffer[byte_offset] |= (1 << (7 - bit_offset_in_byte))
+            newbuffer[byte_offset] |= (1 << (7 - bit_offset_in_byte))
         else:
-            buffer[byte_offset] &= ~(1 << (7 - bit_offset_in_byte))
+            newbuffer[byte_offset] &= ~(1 << (7 - bit_offset_in_byte))
         bit_offset_in_byte += 1
         if bit_offset_in_byte == 8:
             bit_offset_in_byte = 0
             byte_offset += 1
-    return buffer
+    return newbuffer
 
 
 def append_bytes_to_buffer(data: bytes,
-                           buffer: bytearray,
+                           buffer: 'bytearray|bytes',
                            offset: int = 0,
                            ) -> bytearray:
     """Add bytes to a buffer at a bit offset.
@@ -316,31 +317,35 @@ def append_bytes_to_buffer(data: bytes,
     """
     if not isinstance(data, (bytes, bytearray)):
         raise ValueError('Invalid data must be bytes-like.')
-    if not isinstance(buffer, bytearray):
-        raise ValueError('Invalid buffer must be a mutable bytearray.')
+    if not isinstance(buffer, (bytearray, bytes)):
+        raise ValueError('Invalid buffer must be bytes-like.')
     if not isinstance(offset, int) or offset < 0:
         raise ValueError('Invalid bit offset must be positive integer.')
     byte_offset = offset // 8
-    bit_offset_within_byte = offset % 8
+    bit_offset = offset % 8   # within byte
+    newbuffer = bytearray(buffer)
     # Ensure buffer is large enough for the starting offet
-    while len(buffer) <= byte_offset:
-        buffer.append(0)
+    while len(newbuffer) <= byte_offset:
+        newbuffer.append(0)
     for byte in data:
-        if bit_offset_within_byte == 0:
+        if bit_offset == 0:
             # Aligned to byte boundary simply append or overwrite
-            if byte_offset < len(buffer):
-                buffer[byte_offset] = byte
+            if byte_offset < len(newbuffer):
+                newbuffer[byte_offset] = byte
             else:
-                buffer.append(byte)
+                newbuffer.append(byte)
         else:
             # If misaligned, split the byte across the boundary
-            bits_to_write_in_current_byte = 8 - bit_offset_within_byte
-            current_byte_mask = (byte >> bit_offset_within_byte) & 0xFF
-            next_byte_mask = byte << bits_to_write_in_current_byte & 0xFF
-            buffer[byte_offset] |= current_byte_mask
+            bits_to_write = 8 - bit_offset   # in currrent byte
+            current_byte_mask = (byte >> bit_offset) & 0xFF
+            # preserve bits not being overwritten
+            newbuffer[byte_offset] &= ((0xFF << bits_to_write) & 0xFF)
+            # write new bits
+            newbuffer[byte_offset] |= current_byte_mask
             if byte_offset + 1 >= len(buffer):
-                buffer.append(0)
-            buffer[byte_offset + 1] |= next_byte_mask
+                newbuffer.append(0)
+            next_byte_mask = byte << bits_to_write & 0xFF
+            newbuffer[byte_offset + 1] |= next_byte_mask
         byte_offset += 1
-        bit_offset_within_byte = (bit_offset_within_byte + 8) % 8
-    return buffer
+        bit_offset = (bit_offset + 8) % 8
+    return newbuffer
