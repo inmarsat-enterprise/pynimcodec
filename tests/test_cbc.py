@@ -230,13 +230,19 @@ def test_array_field():
             {
                 'name': 'propName',
                 'type': 'string',
-                'size': 50
+                'size': 20
             },
             {
                 'name': 'propValue',
                 'type': 'uint',
                 'size': 32
-            }
+            },
+            {
+                'name': 'propDesc',
+                'type': 'string',
+                'size': 50,
+                'optional': True,
+            },
         ]
     })
     assert isinstance(test_field, ArrayField)
@@ -246,10 +252,15 @@ def test_array_field():
     ]
     buffer = bytearray()
     offset = 0
-    buffer, new_offset = encode_field(test_field, test_val, buffer, offset)
-    assert len(buffer) == 29
+    buffer, _ = encode_field(test_field, test_val, buffer, offset)
+    assert len(buffer) == 30
     decoded, _ = decode_field(test_field, buffer, 0)
     assert decoded['name'] == test_field.name
+    assert decoded['value'] == test_val
+    test_val.append({ 'propName': 'property3', 'propValue': 3, 'propDesc': 'A property description' })
+    buffer = bytearray()
+    buffer, _ = encode_field(test_field, test_val, buffer, offset)
+    decoded, _ = decode_field(test_field, buffer, 0)
     assert decoded['value'] == test_val
 
 

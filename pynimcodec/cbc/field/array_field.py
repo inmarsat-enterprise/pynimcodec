@@ -113,7 +113,7 @@ def decode(field: Field, buffer: bytes, offset: int) -> 'tuple[list, int]':
         decoded = {} if len(field.fields) > 1 else None
         for col in field.fields:
             if col.optional:
-                present = extract_from_buffer(buffer, offset, 1)
+                present = extract_from_buffer(buffer, offset, 1) == 1
                 offset += 1
                 if not present:
                     continue
@@ -156,8 +156,8 @@ def encode(field: ArrayField,
         for col in field.fields:
             if col.optional:
                 present = 1 if not isinstance(row, dict) or col.name in row else 0
-                buffer = append_bits_to_buffer([present], buffer, offset)
-                offset += 1
+                tmp_buffer = append_bits_to_buffer([present], tmp_buffer, tmp_offset)
+                tmp_offset += 1
                 if not present:
                     continue
             if not isinstance(row, dict):
