@@ -3,6 +3,11 @@
 A set of message codecs for use with satellite IoT products implemented
 in Python.
 
+## Compact Binary Codec (CBC)
+
+A Python implementation of
+[Viasat CBC](https://github.com/inmarsat-enterprise/compact-binary-codec)
+
 ## nimo
 
 The NIMO message codec was designed by ORBCOMM and represents an efficient
