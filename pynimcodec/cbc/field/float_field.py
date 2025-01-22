@@ -93,7 +93,7 @@ def decode(field: Field, buffer: bytes, offset: int) -> 'tuple[float, int]':
         ValueError: If field is invalid.
     """
     if not isinstance(field, FloatField):
-        raise ValueError('Invalid field definition.')
+        raise ValueError('Invalid FloatField definition.')
     x = extract_from_buffer(buffer, offset, field.size, as_buffer=True)
     s_fmt = 'f' if field.size == 32 else 'd'
     value = round(struct.unpack(s_fmt, x)[0], field.precision)
@@ -127,9 +127,9 @@ def encode(field: FloatField,
         return 0
     
     if not isinstance(field, FloatField):
-        raise ValueError('Invalid field definition.')
+        raise ValueError('Invalid FloatField definition.')
     if not isinstance(value, float):
-        raise ValueError('Invalid value.')
+        raise ValueError(f'Invalid {field.name} value.')
     value = round(value, value_precision(value))
     s_fmt = 'f' if field.size == 32 else 'd'
     bits = BitArray.from_bytes(struct.pack(s_fmt, value))

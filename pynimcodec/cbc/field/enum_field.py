@@ -105,7 +105,7 @@ def decode(field: Field, buffer: bytes, offset: int) -> 'tuple[str, int]':
         ValueError: If field is invalid.
     """
     if not isinstance(field, EnumField):
-        raise ValueError('Invalid field definition.')
+        raise ValueError('Invalid EnumField definition.')
     value_int = extract_from_buffer(buffer, offset, field.size)
     if f'{value_int}' not in field.enum:
         raise ValueError(f'Unable to find key {value_int} in field enum')
@@ -133,19 +133,19 @@ def encode(field: EnumField,
         ValueError: If the field or value is invalid for the field definition.
     """
     if not isinstance(field, EnumField):
-        raise ValueError('Invalid field definition.')
+        raise ValueError('Invalid EnumField definition.')
     if not isinstance(value, (str, int)):
-        raise ValueError('Invalid value.')
+        raise ValueError(f'Invalid {field.name} value.')
     if isinstance(value, int):
         key = f'{value}'
     elif isinstance(value, str):
         if value not in field.enum.values():
-            raise ValueError(f'Invalid value {value} not in enum.')
+            raise ValueError(f'Invalid value {value} not in {field.name} enum.')
         for k, v in field.enum.items():
             if v == value:
                 key = k
                 break
     if key not in field.enum:
-        raise ValueError(f'{value} not in enum.')
+        raise ValueError(f'{value} not in {field.name} enum.')
     bits = BitArray.from_int(int(key), field.size)
     return ( append_bits_to_buffer(bits, buffer, offset), offset + field.size )

@@ -110,7 +110,7 @@ def decode(field: Field, buffer: bytes, offset: int) -> 'tuple[list[str], int]':
         ValueError: If field is invalid.
     """
     if not isinstance(field, BitmaskField):
-        raise ValueError('Invalid field definition.')
+        raise ValueError('Invalid BitmaskField definition.')
     bits = BitArray.from_int(extract_from_buffer(buffer, offset, field.size))
     value = []
     for i, bit in enumerate(reversed(bits)):
@@ -143,20 +143,20 @@ def encode(field: BitmaskField,
     if not isinstance(field, BitmaskField):
         raise ValueError('Invalid field definition.')
     if not isinstance(value, (list, int)):
-        raise ValueError('Invalid value.')
+        raise ValueError(f'Invalid {field.name} value.')
     if isinstance(value, list):
         if not all(isinstance(x, str) for x in value):
-            raise ValueError('Invalid list all values must be string type.')
+            raise ValueError(f'Invalid {field.name} list all values must be string type.')
         value_int = 0
         for s in value:
             if s not in field.enum.values():
-                raise ValueError(f'{s} not found in bitmask')
+                raise ValueError(f'{s} not found in {field.name} bitmask')
             for k, v in field.enum.items():
                 if v == s:
                     value_int += 2**int(k)
                     break   # from enum iteration
         value = value_int
     if value < 0 or value > field._max_value:
-        raise ValueError(f'Invalid value must be in range 0..{field._max_value}')
+        raise ValueError(f'Invalid {field.name} value must be in range 0..{field._max_value}')
     bits = BitArray.from_int(value, field.size)
     return ( append_bits_to_buffer(bits, buffer, offset), offset + field.size )

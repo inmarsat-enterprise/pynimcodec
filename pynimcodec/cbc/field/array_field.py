@@ -103,7 +103,7 @@ def decode(field: Field, buffer: bytes, offset: int) -> 'tuple[list, int]':
         ValueError: If field is invalid.
     """
     if not isinstance(field, ArrayField):
-        raise ValueError('Invalid field definition.')
+        raise ValueError('Invalid ArrayField definition.')
     if not field.fixed:
         rows, offset = decode_field_length(buffer, offset)
     else:
@@ -146,10 +146,10 @@ def encode(field: ArrayField,
         ValueError: If the field or value is invalid for the field definition.
     """
     if not isinstance(field, ArrayField):
-        raise ValueError('Invalid field definition.')
+        raise ValueError('Invalid ArrayField definition.')
     if (not isinstance(value, list) or not value or
         field.fixed and len(value) < field.size):
-        raise ValueError('Invalid value array.')
+        raise ValueError(f'Invalid {field.name} value array.')
     tmp_buffer = bytearray()
     tmp_offset = 0
     for i, row in enumerate(value):
@@ -162,11 +162,11 @@ def encode(field: ArrayField,
                     continue
             if not isinstance(row, dict):
                 if len(field.fields) > 1:
-                    raise ValueError(f'Row {i} missing column keys')
+                    raise ValueError(f'{field.name} row {i} missing column keys')
                 tmp_buffer, tmp_offset = col.encode(row, tmp_buffer, tmp_offset)
             else:
                 if col.name not in row:
-                    raise ValueError(f'Row {i} missing {col.name}')
+                    raise ValueError(f'{field.name} row {i} missing {col.name}')
                 tmp_buffer, tmp_offset = col.encode(row[col.name], tmp_buffer, tmp_offset)
     if not field.fixed:
         buffer, offset = encode_field_length(len(value), buffer, offset)

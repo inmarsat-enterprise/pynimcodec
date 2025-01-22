@@ -57,7 +57,7 @@ def decode(field: Field, buffer: bytes, offset: int) -> 'tuple[int|float, int]':
         ValueError: If field is invalid.
     """
     if not isinstance(field, BoolField):
-        raise ValueError('Invalid field definition.')
+        raise ValueError('Invalid BoolField definition.')
     value = extract_from_buffer(buffer, offset, 1)
     return ( bool(value), offset + 1 )
 
@@ -83,7 +83,7 @@ def encode(field: BoolField,
         ValueError: If the field or value is invalid for the field definition.
     """
     if not isinstance(field, BoolField):
-        raise ValueError('Invalid field definition.')
+        raise ValueError('Invalid BoolField definition.')
     if not isinstance(value, bool):
-        raise ValueError('Invalid boolean value.')
+        raise ValueError(f'Invalid {field.name} boolean value.')
     return ( append_bits_to_buffer([int(value)], buffer, offset), offset + 1 )

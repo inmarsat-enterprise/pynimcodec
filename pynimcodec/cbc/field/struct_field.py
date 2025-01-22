@@ -71,7 +71,7 @@ def decode(field: Field, buffer: bytes, offset: int) -> 'tuple[dict, int]':
         ValueError: If field is invalid.
     """
     if not isinstance(field, StructField):
-        raise ValueError('Invalid field definition.')
+        raise ValueError('Invalid StructField definition.')
     value, offset = decode_fields(field, buffer, offset)
     return ( value, offset )
 
@@ -97,5 +97,5 @@ def encode(field: StructField,
         ValueError: If the field or value is invalid for the field definition.
     """
     if not isinstance(field, StructField):
-        raise ValueError('Invalid field definition.')
+        raise ValueError('Invalid StructField definition.')
     return encode_fields(value, field, buffer, offset)

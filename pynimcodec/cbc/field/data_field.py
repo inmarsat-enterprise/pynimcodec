@@ -85,7 +85,7 @@ def decode(field: Field, buffer: bytes, offset: int) -> 'tuple[bytes, int]':
         ValueError: If field is invalid.
     """
     if not isinstance(field, DataField):
-        raise ValueError('Invalid field definition.')
+        raise ValueError('Invalid DataField definition.')
     if not field.fixed:
         length, offset = decode_field_length(buffer, offset)
     else:
@@ -115,9 +115,9 @@ def encode(field: DataField,
         ValueError: If the field or value is invalid for the field definition.
     """
     if not isinstance(field, DataField):
-        raise ValueError('Invalid field definition.')
+        raise ValueError('Invalid DataField definition.')
     if not isinstance(value, bytes):
-        raise ValueError('Invalid data.')
+        raise ValueError(f'Invalid {field.name} data.')
     data = bytearray(value)
     if len(data) > field.size:
         data = bytearray(value[0:field.size])
