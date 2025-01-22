@@ -21,11 +21,12 @@ class IntField(Field):
         size (int): The size of the encoded field in bits.
         encalc (str): Optional pre-encoding math expression to apply to value.
         decalc (str): Optional post-decoding math expression to apply to value.
+        clip (bool): Allows encoding of values to clip to the limit of `size`.
     """
     
     def __init__(self, name: str, **kwargs) -> None:
         kwargs['type'] = FIELD_TYPE
-        self._add_kwargs(['size'], ['encalc', 'decalc'])
+        self._add_kwargs(['size'], ['encalc', 'decalc', 'clip'])
         super().__init__(name, **kwargs)
         self._size = 0
         self.size = kwargs.get('size')
@@ -33,6 +34,8 @@ class IntField(Field):
         self.encalc = kwargs.get('encalc')
         self._decalc: 'str|None' = ''
         self.decalc = kwargs.get('decalc')
+        self._clip: bool = False
+        self.clip = kwargs.get('clip', False)
     
     @property
     def size(self) -> int:
@@ -82,6 +85,16 @@ class IntField(Field):
     def _min_value(self) -> int:
         return -int(2**self.size / 2)
     
+    @property
+    def clip(self) -> bool:
+        return self._clip
+    
+    @clip.setter
+    def clip(self, value: bool):
+        if not isinstance(value, bool):
+            raise ValueError('Invalid clip boolean')
+        self._clip = value
+    
     def decode(self, buffer: bytes, offset: int) -> 'tuple[int|float, int]':
         """Extracts the signed integer value from a buffer."""
         return decode(self, buffer, offset)
@@ -119,7 +132,7 @@ def decode(field: Field, buffer: bytes, offset: int) -> 'tuple[int|float, int]':
         ValueError: If field is invalid.
     """
     if not isinstance(field, IntField):
-        raise ValueError('Invalid field definition.')
+        raise ValueError('Invalid IntField definition.')
     value = extract_from_buffer(buffer, offset, field.size, signed=True)
     if field.decalc:
         value = calc_decode(field.decalc, value)
@@ -148,15 +161,19 @@ def encode(field: IntField,
         ValueError: If the field or value is invalid for the field definition.
     """
     if not isinstance(field, IntField):
-        raise ValueError('Invalid field definition.')
+        raise ValueError('Invalid IntField definition.')
     if (not isinstance(value, int) and
         not (isinstance(value, float) and field.encalc)):
-        raise ValueError('Invalid value.')
+        raise ValueError(f'Invalid {field.name} value.')
     if field.encalc:
         value = calc_encode(field.encalc, value)
     elif not isinstance(value, int):
-        raise ValueError('Invalid integer value.')
-    if value < field._min_value or value > field._max_value:
-        raise ValueError(f'Value too large to encode in {field.size} bits.')
+        raise ValueError(f'Invalid {field.name} value.')
+    if (value < field._min_value or value > field._max_value) and not field.clip:
+        raise ValueError(f'{field.name} value exceeds size {field.size} bits.')
+    if value < field._min_value:
+        value = field._min_value
+    elif value > field._max_value:
+        value = field._max_value
     bits = BitArray.from_int(value, field.size)
     return ( append_bits_to_buffer(bits, buffer, offset), offset + field.size )

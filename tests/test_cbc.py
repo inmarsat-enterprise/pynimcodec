@@ -63,7 +63,7 @@ def test_int_field(int_field: IntField):
             assert new_offset == offset + int_field.size
     with pytest.raises(ValueError) as exc_info:
         buffer, _ = encode_field(int_field, 15, buffer, 0)
-    assert 'too large' in exc_info.value.args[0]
+    assert 'exceeds' in exc_info.value.args[0]
 
 
 @pytest.mark.parametrize('test_expr,v,expected', [
@@ -154,10 +154,13 @@ def test_uint_field():
             assert new_offset == offset + test_field.size
     with pytest.raises(ValueError) as exc_info:
         buffer, _ = encode_field(test_field, -1, buffer, 0)
-    assert 'Invalid value' in exc_info.value.args[0]
+    assert 'Invalid' in exc_info.value.args[0]
     with pytest.raises(ValueError) as exc_info:
         buffer, _ = encode_field(test_field, 16, buffer, 0)
-    assert 'too large' in exc_info.value.args[0]
+    assert 'exceeds' in exc_info.value.args[0]
+    test_field.clip = True
+    buffer, _ = encode_field(test_field, 16, buffer, 0)
+    assert extract_from_buffer(buffer, 0, test_field.size) == 2**(test_field.size) - 1
 
 
 def test_string_field():

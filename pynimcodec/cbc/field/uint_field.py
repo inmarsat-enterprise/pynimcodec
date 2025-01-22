@@ -21,11 +21,12 @@ class UintField(Field):
         size (int): The size of the encoded field in bits.
         encalc (str): Optional pre-encoding math expression to apply to value.
         decalc (str): Optional post-decoding math expression to apply to value.
+        clip (bool): Allows encoding of values to clip to the limit of `size`.
     """
     
     def __init__(self, name: str, **kwargs) -> None:
         kwargs['type'] = FIELD_TYPE
-        self._add_kwargs(['size'], ['encalc', 'decalc'])
+        self._add_kwargs(['size'], ['encalc', 'decalc', 'clip'])
         super().__init__(name, **kwargs)
         self._size = 0
         self.size = kwargs.get('size')
@@ -33,6 +34,8 @@ class UintField(Field):
         self.encalc = kwargs.get('encalc')
         self._decalc: 'str|None' = None
         self.decalc = kwargs.get('decalc')
+        self._clip: bool = False
+        self.clip = kwargs.get('clip', False)
     
     @property
     def size(self) -> int:
@@ -77,6 +80,16 @@ class UintField(Field):
     @property
     def _max_value(self) -> int:
         return 2**self.size - 1
+    
+    @property
+    def clip(self) -> bool:
+        return self._clip
+    
+    @clip.setter
+    def clip(self, value: bool):
+        if not isinstance(value, bool):
+            raise ValueError('Invalid clip boolean')
+        self._clip = value
     
     def decode(self, buffer: bytes, offset: int) -> 'tuple[int|float, int]':
         """Extracts the unsigned integer value from a buffer."""
@@ -144,15 +157,17 @@ def encode(field: UintField,
         ValueError: If the field or value is invalid for the field definition.
     """
     if not isinstance(field, UintField):
-        raise ValueError('Invalid field definition.')
+        raise ValueError('Invalid UintField definition.')
     if ((not isinstance(value, int) and
          not (isinstance(value, float) and field.encalc)) or value < 0):
-        raise ValueError('Invalid value.')
+        raise ValueError(f'Invalid {field.name} value.')
     if field.encalc:
         value = calc_encode(field.encalc, value)
     elif not isinstance(value, int):
-        raise ValueError('Invalid unsigned integer value.')
+        raise ValueError(f'Invalid {field.name} value.')
+    if value > field._max_value and not field.clip:
+        raise ValueError(f'{field.name} value exceeds size {field.size} bits.')
     if value > field._max_value:
-        raise ValueError(f'Value too large to encode in {field.size} bits.')
+        value = field._max_value
     bits = BitArray.from_int(value, field.size)
     return ( append_bits_to_buffer(bits, buffer, offset), offset + field.size )
