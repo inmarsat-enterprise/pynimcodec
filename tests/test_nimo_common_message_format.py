@@ -7,6 +7,7 @@ import xml.etree.ElementTree as ET
 from collections import OrderedDict
 from copy import deepcopy
 from dataclasses import dataclass
+from binascii import b2a_base64
 
 import pytest
 
@@ -245,6 +246,21 @@ def bitmasklist_field(bml_fields_example: Fields) -> BitmaskListField:
                             fields = bml_fields_example,
                             description = 'An example bitmask list',
                             )
+@pytest.fixture
+def fieldedge_message() -> MessageCodec:
+    """Returns a Fieldedge TextMobileTerminated message."""
+    fields = Fields()
+    fields.add(UnsignedIntField(name='source',size=32,optional=True));
+    fields.add(StringField(name='text',size=255,value='Sending a mobile-terminated message to device'));
+    #fields.add(StringField(name='text',value='pyTest text message'));
+    fields.add(UnsignedIntField(name='timestamp',size=32,optional=True,value=1739375463));
+    
+    message = MessageCodec(name='TextMobileTerminated',
+                        sin=255,
+                        min=4,
+                        fields=fields,
+                        is_forward=True)
+    return message
 
 @pytest.fixture
 def return_message(array_element_fields_example) -> MessageCodec:
@@ -1324,6 +1340,19 @@ def test_rm_codec(return_message):
                    format(encoded['min'], '02X') +
                    encoded['data'])
     msg.decode(bytes.fromhex(hex_message))
+    assert(msg_copy == msg)
+
+
+def test_rm_codec_base64(fieldedge_message):
+    msg: MessageCodec = fieldedge_message
+    msg_copy = deepcopy(fieldedge_message)
+    encoded = msg.encode(data_format=DataFormat.BASE64)
+    hex_message = (format(encoded['sin'], '02X') +
+                   format(encoded['min'], '02X') +
+                   base64.b64decode(encoded['data']).hex())
+    msg.decode(bytes.fromhex(hex_message))
+    payloadRaw = b2a_base64(bytearray.fromhex(hex_message)).strip().decode()
+    #logger.debug(payloadRaw)
     assert(msg_copy == msg)
 
 
