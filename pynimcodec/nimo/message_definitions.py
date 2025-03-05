@@ -437,11 +437,11 @@ def decode_message(data: bytes,
             for field in message.get('fields'):
                 assert isinstance(field, dict)
                 if 'optional' in field:
-                    field_present = extract_bits(data, offset, 1)
-                    offset += 1
+                    field_present = extract_bits(data, offset, 1) 
                 else:
                     field_present = 1
                 if not field_present:
+                    offset += 1
                     continue
                 decoded_field, offset = parse_field(field, data, offset)
                 decoded_fields.append(decoded_field)
