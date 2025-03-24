@@ -208,7 +208,7 @@ class SignedIntField(FieldCodec):
     def encode(self) -> str:
         """Returns the binary string of the field value."""
         if self.value is None:
-            raise ValueError(f'No value defined in UnsignedIntField {self.name}')
+            raise ValueError(f'No value defined in SignedIntField {self.name}')
         _format = f'0{self.size}b'
         if self.value < 0:
             invertedbin = format(self.value * -1, _format)
