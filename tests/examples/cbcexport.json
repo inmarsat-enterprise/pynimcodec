@@ -1,1 +1,0 @@
-{"application":"cbcApplication","version":"1.0","messages":[{"name":"testMessage","direction":"UPLINK","messageKey":49152,"fields":[{"name":"testIntField","type":"int","size":4}]}]}
