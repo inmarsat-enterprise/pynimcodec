@@ -20,17 +20,19 @@ class FloatField(Field):
         type (FieldType): The field type.
         description (str): Optional description for the field.
         optional (bool): Flag indicates if the field is optional in the message.
+        size (int): The size in bits either 32 (default) or 64 (double)
+        precision (int): The precision of the value when decoding (default 6)
     """
     
     def __init__(self, name: str, **kwargs) -> None:
         kwargs['type'] = FIELD_TYPE
         self._add_kwargs([], ['size', 'precision'])
         super().__init__(name, **kwargs)
-        self._supported = [32, 64]
-        self._size = 32
-        self._precision = 6
-        self.size = kwargs.get('size')
-        self.precision = kwargs.get('precision')
+        self._supported_sizes = [32, 64]
+        self._size: int = 32
+        self._precision: int = 6
+        self.size = kwargs.pop('size', 32)
+        self.precision = kwargs.pop('precision', 6)
     
     @property
     def size(self) -> int:
@@ -40,8 +42,8 @@ class FloatField(Field):
     def size(self, value: int):
         if value is None:
             return
-        if value not in self._supported:
-            raise ValueError(f'Invalid size must be from [{self._supported}]')
+        if value not in self._supported_sizes:
+            raise ValueError(f'Invalid size must be from [{self._supported_sizes}]')
         self._size = value
     
     @property

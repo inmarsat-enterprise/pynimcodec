@@ -13,15 +13,21 @@ from ..constants import FieldType
 
 
 class Field(CbcCodec):
-    """Base type for all fields."""
+    """Base type for all fields.
+    
+    Attributes:
+        name (str): The unique field name within a set of Fields
+        type (FieldType): The enumerated type of field codec
+        optional (bool): A flag indicating if the field may be not present.
+    """
     
     def __init__(self, name: str, **kwargs) -> None:
         self._add_kwargs(['type'], ['optional'])
         super().__init__(name, **kwargs)
         self._type: FieldType = None
-        self.type = kwargs.get('type')
         self._optional: bool = False
-        self.optional = kwargs.get('optional', False)
+        self.type = kwargs.pop('type')
+        self.optional = kwargs.pop('optional', False)
     
     @property
     def type(self) -> FieldType:

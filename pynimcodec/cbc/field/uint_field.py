@@ -21,21 +21,27 @@ class UintField(Field):
         size (int): The size of the encoded field in bits.
         encalc (str): Optional pre-encoding math expression to apply to value.
         decalc (str): Optional post-decoding math expression to apply to value.
-        clip (bool): Allows encoding of values to clip to the limit of `size`.
+        min (int): Optional minimum value to encode even if value is lower.
+        max (int): Optional maximum value to encode even if value is higher.
     """
     
     def __init__(self, name: str, **kwargs) -> None:
         kwargs['type'] = FIELD_TYPE
-        self._add_kwargs(['size'], ['encalc', 'decalc', 'clip'])
+        self._add_kwargs(['size'], ['encalc', 'decalc', 'min', 'max'])
         super().__init__(name, **kwargs)
-        self._size = 0
-        self.size = kwargs.get('size')
+        self._size: int = 0
         self._encalc: 'str|None' = None
-        self.encalc = kwargs.get('encalc')
         self._decalc: 'str|None' = None
-        self.decalc = kwargs.get('decalc')
-        self._clip: bool = False
-        self.clip = kwargs.get('clip', False)
+        self._min: 'int|None' = None
+        self._max: 'int|None' = None
+        self.size = kwargs.pop('size')
+        self.encalc = kwargs.pop('encalc', None)
+        self.decalc = kwargs.pop('decalc', None)
+        self.min = kwargs.pop('min', None)
+        self.max = kwargs.pop('max', None)
+        if self.min is not None and self.max is not None:
+            if self.min >= self.max:
+                raise ValueError('min must be lower than max')
     
     @property
     def size(self) -> int:
@@ -82,14 +88,36 @@ class UintField(Field):
         return 2**self.size - 1
     
     @property
-    def clip(self) -> bool:
-        return self._clip
+    def min(self) -> 'int|None':
+        return self._min
     
-    @clip.setter
-    def clip(self, value: bool):
-        if not isinstance(value, bool):
-            raise ValueError('Invalid clip boolean')
-        self._clip = value
+    @min.setter
+    def min(self, value: 'int|None'):
+        if value is not None:
+            if (not isinstance(value, int) or
+                value < 0 or
+                value > self._max_value):
+                raise ValueError('min must be within range' +
+                                 f' [0..{self._max_value}]')
+            if self.max is not None and value > self.max:
+                raise ValueError('min must be below max')
+        self._min = value
+    
+    @property
+    def max(self) -> 'int|None':
+        return self._max
+    
+    @max.setter
+    def max(self, value: 'int|None'):
+        if value is not None:
+            if (not isinstance(value, int) or
+                value < 1 or
+                value > self._max_value):
+                raise ValueError('max must be within range' +
+                                 f' [1..{self._max_value}]')
+            if self.min is not None and value < self.min:
+                raise ValueError('max must be above min')
+        self._max = value
     
     def decode(self, buffer: bytes, offset: int) -> 'tuple[int|float, int]':
         """Extracts the unsigned integer value from a buffer."""
@@ -165,9 +193,11 @@ def encode(field: UintField,
         value = calc_encode(field.encalc, value)
     elif not isinstance(value, int):
         raise ValueError(f'Invalid {field.name} value.')
-    if value > field._max_value and not field.clip:
-        raise ValueError(f'{field.name} value exceeds size {field.size} bits.')
+    if field.min is not None and value < field.min:
+        value = field.min
+    if field.max is not None and value > field.max:
+        value = field.max
     if value > field._max_value:
-        value = field._max_value
+        raise ValueError(f'{field.name} must be <= {field._max_value}.')
     bits = BitArray.from_int(value, field.size)
     return ( append_bits_to_buffer(bits, buffer, offset), offset + field.size )

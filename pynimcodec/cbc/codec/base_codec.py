@@ -7,9 +7,20 @@ T = TypeVar('T')
 
 
 class CbcCodec:
-    """The base class for all CBC codecs."""
+    """The base class for all CBC codecs.
+    
+    Subclasses must call self._add_kwargs() before calling super().__init__
+    which will initialize the private _req_kwargs and _opt_kwargs attributes
+    used for structural validations.
+    
+    Attributes:
+        name (str): The unique name of the codec within a set.
+        description (str): Optional descriptor for the codec intended use.
+    """
     
     def __init__(self, name: str, **kwargs) -> None:
+        # self._req_kwargs is dynamically initialized by _add_kwargs
+        # self._opt_kwargs is dynamically initialized by _add_kwargs
         self._add_kwargs([], ['description'])
         if not isinstance(name, str) or name.strip() == '':
             raise ValueError('Invalid name must be non-empty string')
@@ -25,17 +36,33 @@ class CbcCodec:
         self._name = None
         self.name = name
         self._description = None
-        self.description = kwargs.get('description')   # validates value
+        self.description = kwargs.pop('description', None)   # validates value
     
     def _add_kwargs(self, req: 'list[str]', opt: 'list[str]'):
+        """Use in subclass to define required and optional __init__ kwargs.
+        
+        Args:
+            req (list): A list of subclass attribute names that are required
+                during initialization. May be an empty list.
+            opt (list): A list of subclass attribute names that are optional
+                during initialization. May be an empty list.
+        """
+        if not isinstance(req, list) or not isinstance(opt, list):
+            raise ValueError('Missing req or opt')
+        if ((req and not all(isinstance(e, str) for e in req)) or
+            (opt and not all(isinstance(e, str) for e in opt))):
+            raise ValueError('List must be empty or all strings')
         for prop in ['_req_kwargs', '_opt_kwargs']:
             if not hasattr(self, prop):
-                setattr(self, prop, [])
-        for props in [req, opt]:
-            prop = self._req_kwargs if props == req else self._opt_kwargs
-            for k in props:
-                if k not in prop:
-                    prop.append(k)
+                setattr(self, prop, [])   # dynamically create
+        for init_props in [req, opt]:
+            if init_props == req:
+                prop_set: 'list[str]' = getattr(self, '_req_kwargs')
+            else:
+                prop_set: 'list[str]' = getattr(self, '_opt_kwargs')
+            for k in init_props:
+                if k not in prop_set:
+                    prop_set.append(k)
 
     @property
     def name(self) -> str:

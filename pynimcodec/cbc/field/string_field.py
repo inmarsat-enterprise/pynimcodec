@@ -26,10 +26,10 @@ class StringField(Field):
         kwargs['type'] = FIELD_TYPE
         self._add_kwargs(['size'], ['fixed'])
         super().__init__(name, **kwargs)
-        self._size = 0
-        self.size = kwargs.get('size')
-        self._fixed = False
-        self.fixed = kwargs.get('fixed', False)
+        self._size: int = 0
+        self._fixed: bool = False
+        self.size = kwargs.pop('size')
+        self.fixed = kwargs.pop('fixed', False)
     
     @property
     def size(self) -> int:

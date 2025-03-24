@@ -5,6 +5,7 @@ from pynimcodec.utils import snake_case
 
 from ..constants import FieldType
 from .base_field import Field
+from .enum import valid_enum
 
 FIELD_TYPE = FieldType.BITMASK
 
@@ -19,18 +20,17 @@ class BitmaskField(Field):
         optional (bool): Flag indicates if the field is optional in the message.
         size (int): The size of the encoded field in bits.
         enum (dict): A dictionary of numerically-keyed strings representing
-            meaning of the bits.
+            meaning of the bits e.g. {"0": "LSB", "8": "MSB"}
     """
     
     def __init__(self, name: str, **kwargs) -> None:
         kwargs['type'] = FIELD_TYPE
         self._add_kwargs(['size', 'enum'], [])
         super().__init__(name, **kwargs)
-        self._size = 0
-        self.size = kwargs.get('size')
-        self._enum = {}
-        if kwargs.get('enum'):
-            self.enum = kwargs.get('enum')
+        self._size: int = 0
+        self._enum: 'dict[str, str]' = {}
+        self.size = kwargs.pop('size')
+        self.enum = kwargs.pop('enum')
     
     @property
     def size(self) -> int:
@@ -48,29 +48,7 @@ class BitmaskField(Field):
     
     @enum.setter
     def enum(self, keys_values: 'dict[str, str]'):
-        if not isinstance(keys_values, dict) or not keys_values:
-            raise ValueError('Invalid enumeration dictionary.')
-        max_enum = self.size - 1
-        for k in keys_values:
-            try:
-                key_int = int(k)
-                if key_int < 0 or key_int > max_enum:
-                    errmsg = f'Key {k} must be in range 0..{max_enum}.'
-                    raise ValueError(errmsg)
-            except ValueError as exc:
-                if not str(exc).startswith('Key'):
-                    errmsg = f'Invalid key {k} must be integer parsable.'
-                else:
-                    errmsg = str(exc)
-                raise ValueError(errmsg) from exc
-        seen = set()
-        for v in keys_values.values():
-            if not isinstance(v, str):
-                raise ValueError('Invalid enumeration value must be string.')
-            if v in seen:
-                raise ValueError('Duplicate value found in list')
-            seen.add(v)
-        self._enum = keys_values
+        self._enum = valid_enum(self.size, keys_values, bitmask=True)
     
     @property
     def _max_value(self) -> int:

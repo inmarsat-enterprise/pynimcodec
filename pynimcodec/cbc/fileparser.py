@@ -14,23 +14,26 @@ _log = logging.getLogger(__name__)
 
 required_keys = ['application', 'messages']
 
-def import_json(filepath: str) -> Messages:
+def import_json(filepath: str) -> Application:
     """Import a JSON CBC definition file."""
     if not os.path.isfile(filepath):
         raise ValueError('Invalid file path.')
     with open(filepath) as f:
         try:
-            codec_dict = json.load(f)
+            codec_dict: dict = json.load(f)
             if not all(k in codec_dict for k in required_keys):
                 raise ValueError(f'Missing required keys ({required_keys})')
-            messages = codec_dict.get('messages')
-            if (not isinstance(messages, list) or
-                not all(isinstance(msg, dict) for msg in messages)):
+            message_list = codec_dict.get('messages')
+            if (not isinstance(message_list, list) or
+                not all(isinstance(msg, dict) for msg in message_list)):
                 raise ValueError('messages must be a list')
-            message_codec = Messages()
-            for message in messages:
-                message_codec.append(create_message(message))
-            return message_codec
+            messages = Messages()
+            for message in message_list:
+                messages.append(create_message(message))
+            return Application(application=codec_dict.get('application'),
+                               version=codec_dict.get('version'),
+                               description=codec_dict.get('description'),
+                               messages=messages)
         except Exception as exc:
             _log.error(exc)
 
@@ -40,7 +43,7 @@ def export_json(filepath: str, messages: Messages, **kwargs) -> None:
     Args:
         filepath (str): The output path of the JSON file.
         messages (Messages): The codec list of messages to export.
-        **name (str): The application name (default: `cbcApplication`)
+        **application (str): The application name (default: `cbcApplication`)
         **version (str): Semver-style version string (default `1.0`)
         **description (str): Optional description for the intended use.
         **indent (int): Pretty print JSON export with indentation

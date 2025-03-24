@@ -23,8 +23,8 @@ class StructField(Field):
         kwargs['type'] = FIELD_TYPE
         self._add_kwargs(['fields'], [])
         super().__init__(name, **kwargs)
-        self._fields: Fields = None
-        self.fields = kwargs.get('fields')
+        self._fields: Fields = Fields()
+        self.fields = kwargs.pop('fields')
     
     @property
     def fields(self) -> Fields:

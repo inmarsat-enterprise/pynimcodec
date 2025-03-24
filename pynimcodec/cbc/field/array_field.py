@@ -8,7 +8,7 @@ from pynimcodec.bitman import (
 from pynimcodec.utils import snake_case
 
 from ..constants import FieldType
-from .base_field import Field
+from .base_field import Field, Fields
 from .field_length import decode_field_length, encode_field_length
 
 FIELD_TYPE = FieldType.ARRAY
@@ -31,12 +31,12 @@ class ArrayField(Field):
         kwargs['type'] = FIELD_TYPE
         self._add_kwargs(['size', 'fields'], ['fixed'])
         super().__init__(name, **kwargs)
-        self._size = 0
-        self.size = kwargs.get('size')
-        self._fixed = False
-        self.fixed = kwargs.get('fixed', False)
-        self._fields = []
-        self.fields = kwargs.get('fields')
+        self._size: int = 0
+        self._fixed: bool = False
+        self._fields: Fields = Fields()
+        self.size = kwargs.pop('size')
+        self.fixed = kwargs.pop('fixed', False)
+        self.fields = kwargs.pop('fields')
     
     @property
     def size(self) -> int:

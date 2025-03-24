@@ -14,18 +14,48 @@ from pynimcodec.utils import camel_case, snake_case
 
 
 class Message(CbcCodec):
-    """A message data structure."""
+    """A message data structure.
     
-    def __init__(self, name: str, **kwargs) -> None:
+    Attributes:
+        name (str): The unique message name within a set.
+        description (str): Optional description for the intended message use.
+        direction (MessageDirection): Indicates Mobile-Originated/Uplink or
+            Mobile-Terminated/Downlink
+        message_key (int): 16-bit direction-unique message key
+            within a superset.
+        fields (Fields)
+    """
+    
+    def __init__(self,
+                 name: str,
+                 direction: MessageDirection,
+                 message_key: int,
+                 fields: Fields,
+                 **kwargs) -> None:
+        """Create a message codec.
+        
+        Args:
+            name (str): The unique message name within a set.
+            direction (MessageDirection): The direction of communication
+                (required)
+            message_key (int): The 16-bit direction-unique message key.
+            fields (Fields): The ordered list of Field codec definitions.
+            **description (str): Optional description of intended use.
+        """
         self._add_kwargs(['direction', 'message_key', 'fields'],
-                         ['coap_compatible', 'vsat_reserved', 'nimo_compatible'])
+                         ['coap_compatible', 'v_reserved', 'nimo_compatible'])
+        kwargs['direction'] = direction
+        kwargs['message_key'] = message_key
+        kwargs['fields'] = fields
         super().__init__(name, **kwargs)
         self._direction: MessageDirection = None
         self._message_key: int = None
         self._fields: Fields = None
+        # coap_compatible can be False to allow message_key values that may
+        #  be misinterpreted as CoAP if sent without CoAP header
         self._coap_compatible: bool = kwargs.get('coap_compatible', True)
-        self._vsat_reserved: bool = kwargs.get('vsat_reserved', False)
-        self._nimo_compatible: bool = kwargs.get('nimo_compatible', False)
+        # o_reserved True allows override of operator-reserved message_key values
+        self._o_reserved: bool = kwargs.get('o_reserved', False)
         self.direction = kwargs.get('direction')
         self.message_key = kwargs.get('message_key')
         self.fields = kwargs.get('fields')
@@ -51,12 +81,10 @@ class Message(CbcCodec):
     def message_key(self, value: int):
         if not isinstance(value, int) or value not in range(0, 65536):
             raise ValueError('message_key must be a 16-bit unsigned integer')
-        if self._coap_compatible and value < 49152:
+        if self._coap_compatible and value < 32768:
             warnings.warn('message_key conflict with CoAP compatibility')
-        if not self._vsat_reserved and value > 65279:
-            warnings.warn('message_key conflict with Viasat reserved range')
-        if self._nimo_compatible and value not in range(32768, 65280):
-            warnings.warn('message_key conflict with NIMO compatibility')
+        if not self._o_reserved and value > 65279:
+            warnings.warn('message_key conflict with vendor-reserved range')
         self._message_key = value
 
     @property
@@ -70,6 +98,7 @@ class Message(CbcCodec):
         self._fields = fields
     
     def to_json(self):
+        """Get a JSON representation of the message codec."""
         key_order = ['name', 'direction', 'message_key', 'description', 'fields']
         raw = {}
         for attr_name in dir(self.__class__):
@@ -99,6 +128,14 @@ class Message(CbcCodec):
         if not isinstance(content, dict) or not content:
             raise ValueError('Invalid content.')
         return cls(**{snake_case(k): v for k, v in content.items()})
+    
+    def encode(self, content: dict, **kwargs):
+        """Encode the message from a dictionary definition."""
+        return encode_message(content, message=self, **kwargs)
+    
+    def decode(self, buffer: bytes, **kwargs):
+        """Decode the message from a buffer."""
+        return decode_message(buffer, message=self, **kwargs)
     
 
 class Messages(CodecList[Message]):
