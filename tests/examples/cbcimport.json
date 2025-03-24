@@ -9,7 +9,15 @@
             "messageKey": 49152,
             "description": "An optional message description.",
             "fields": [
-                { "name":"exampleField", "type":"uint", "size":8 }
+                { "name": "exampleField", "type": "uint", "size": 8 },
+                {
+                    "name": "fieldWithMin",
+                    "type": "int",
+                    "size": 7,
+                    "optional": true,
+                    "min": -1,
+                    "max": 32
+                }
             ]
         }
     ]

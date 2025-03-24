@@ -601,7 +601,7 @@ def test_file_import():
         }
     }
     encoded = app_codec.encode(test_val)
-    assert len(encoded) == 3
+    assert len(encoded) == 4   # <message_key><uint><opt_bit><pad>
     decoded = app_codec.decode(encoded, direction=MessageDirection.MO)
     assert decoded == test_val
 
