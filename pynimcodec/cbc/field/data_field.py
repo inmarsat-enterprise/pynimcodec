@@ -1,5 +1,8 @@
 """Data field class and methods."""
 
+import base64
+import binascii
+
 from pynimcodec.bitman import append_bytes_to_buffer, extract_from_buffer
 from pynimcodec.utils import snake_case
 
@@ -69,6 +72,16 @@ def create(**kwargs) -> DataField:
     return DataField(**{snake_case(k): v for k, v in kwargs.items()})
 
 
+def _is_valid_base64(candidate: str) -> bool:
+    """Validate a string as base 64 for encoding."""
+    try:
+        padding = '=' * (-len(candidate) %4)
+        base64.b64decode(candidate + padding, validate=True)
+        return True
+    except Exception:
+        return False
+
+
 def decode(field: Field, buffer: bytes, offset: int) -> 'tuple[bytes, int]':
     """Decode a data field value from a buffer at a bit offset.
     
@@ -90,7 +103,8 @@ def decode(field: Field, buffer: bytes, offset: int) -> 'tuple[bytes, int]':
         length, offset = decode_field_length(buffer, offset)
     else:
         length = field.size
-    value = extract_from_buffer(buffer, offset, length * 8, as_buffer=True)
+    raw_bytes = extract_from_buffer(buffer, offset, length * 8, as_buffer=True)
+    value = base64.b64encode(raw_bytes).decode('utf-8')
     return ( value, offset + length * 8 )
 
 
@@ -116,6 +130,9 @@ def encode(field: DataField,
     """
     if not isinstance(field, DataField):
         raise ValueError('Invalid DataField definition.')
+    if _is_valid_base64(value):
+        padding = '=' * (-len(value) % 4)
+        value = base64.b64decode(value + padding, validate=True)
     if not isinstance(value, bytes):
         raise ValueError(f'Invalid {field.name} data.')
     data = bytearray(value)

@@ -1,3 +1,4 @@
+import base64
 import math
 import os
 import pytest
@@ -476,7 +477,12 @@ def test_bitmaskarray_field(bitmaskarray_field: BitmaskArrayField):
     assert decoded['value'] == test_val
 
 
-def test_data_field():
+@pytest.fixture
+def data_field():
+    return DataField(name='testData',
+                     size=100)
+
+def test_data_field(data_field: DataField):
     """"""
     test_field = create_field({
         'name': 'testData',
@@ -484,11 +490,13 @@ def test_data_field():
         'size': 100,
     })
     assert isinstance(test_field, DataField)
-    test_val = bytes([0,1,2,3])
+    assert test_field == data_field
+    test_data = bytes([0,1,2,3])
+    test_val = base64.b64encode(test_data).decode('utf-8')
     buffer = bytearray()
     offset = 0
     buffer, _ = encode_field(test_field, test_val, buffer, offset)
-    assert len(buffer) == len(test_val) + 1 if len(test_val) < 128 else 2
+    assert len(buffer) == len(test_data) + 1 if len(test_data) < 128 else 2
     decoded, _ = decode_field(test_field, buffer, 0)
     assert decoded['value'] == test_val
 
