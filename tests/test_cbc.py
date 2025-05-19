@@ -4,6 +4,7 @@ import os
 import pytest
 
 from aiocoap import Code, Type
+from aiocoap.optiontypes import OpaqueOption
 
 from pynimcodec.bitman import extract_from_buffer
 from pynimcodec.cbc import (
@@ -587,13 +588,43 @@ def test_message(message_codec: Message):
     assert len(encoded) == 9 if len(test_val['value'].keys()) == 2 else 3
     decoded = decode_message(encoded, message=test_message, nim=True)
     assert decoded == test_val
-    coap_message = encode_message(test_val, message=test_message, coap=True)
-    assert coap_message.mid == test_message.message_key
+
+
+def test_coap_message_options(message_codec: Message):
+    """"""
+    test_val = {
+        'name': 'testMoMessage',
+        'value': {
+            'testUintField': 3,
+            'testString': 'hello',
+            'testStruct': {
+                'value1': 1,
+            }
+        }
+    }
+    coap_message = encode_message(test_val, message=message_codec, coap=True)
+    assert coap_message.mid == message_codec.message_key
     assert len(coap_message.payload) == 7 if len(test_val['value'].keys()) == 2 else 1
     coap_message.code = Code.POST
     coap_message.mtype = Type.NON
     coap_encoded = coap_message.encode()
-    decoded = decode_message(coap_encoded, message=test_message, coap=True)
+    decoded = decode_message(coap_encoded,
+                             direction=MessageDirection.MO,
+                             message=message_codec,
+                             coap=True)
+    assert 'coapOptions' not in decoded
+    test_imsi = '123456789012345'
+    imsi_opt = 65000
+    coap_message.opt.add_option(OpaqueOption(imsi_opt, test_imsi.encode()))
+    coap_encoded = coap_message.encode()
+    decoded = decode_message(coap_encoded,
+                             direction=MessageDirection.MO,
+                             message=message_codec,
+                             coap=True)
+    assert 'coapOptions' in decoded
+    coap_options = decoded.pop('coapOptions', None)
+    assert isinstance(coap_options, dict)
+    assert coap_options.get(imsi_opt).decode() == test_imsi
     assert decoded == test_val
 
 

@@ -297,6 +297,7 @@ def decode_message(buffer: bytes, **kwargs) -> dict:
                     if m.message_key == message_key and m.direction == direction:
                         message = m
                         break
+    coap_message = None
     if nim:
         if coap:
             raise ValueError('nim and coap flags mutually exclusive')
@@ -318,6 +319,17 @@ def decode_message(buffer: bytes, **kwargs) -> dict:
     if message.description and kwargs.get('incl_desc') is True:
         decoded['description'] = message.description
     decoded['value'], _ = decode_fields(message, buffer, offset)
+    if isinstance(coap_message, aiocoap.Message):
+        coap_options = {}
+        for opt in coap_message.opt.option_list():
+            try:
+                number = getattr(opt, 'number')
+                value = getattr(opt, 'value')
+                coap_options[int(number)] = value
+            except (AttributeError):
+                warnings.warn('Error parsing CoAP option')
+        if coap_options:
+            decoded['coapOptions'] = coap_options
     return decoded
 
 
