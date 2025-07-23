@@ -376,6 +376,20 @@ SC1000_DECODE_TEST_CASES = {
     }
 }
 
+SC1000_ENCODE_TEST_CASES = {
+    'getTerminalInfo': {
+        'exclude': True,
+        'codec': os.path.join(os.getcwd(), 'secrets/viasat_sc1000.idpmsg'),
+        'raw_payload': "Nw0=",
+        'encode': dict({
+            "codecServiceId": 55,
+            "codecMessageId": 13,
+            # "fields": [
+            # ]
+        })
+    },
+}
+
 def test_message_definitions_decode_message():
     """"""
     for test_inputs in SC1000_DECODE_TEST_CASES.values():
@@ -395,3 +409,26 @@ def test_message_definitions_decode_message():
                     for i, field in enumerate(v):
                         for fk, fv in field.items():
                             assert fk in res['fields'][i] and fv == res['fields'][i][fk]
+                            
+def test_message_definitions_encode_message():
+    
+    for test_inputs in SC1000_ENCODE_TEST_CASES.values():
+        if not test_inputs.get('exclude', False):
+            logger.debug(f"\n")
+            test_codec = test_inputs.get('codec')
+            raw_payload = test_inputs.get('raw_payload')
+            to_encode: dict = test_inputs.get('encode')
+            
+            msg: MessageCodec = fieldedge_message
+            msg_copy = deepcopy(fieldedge_message)
+            encoded = msg.encode(data_format=DataFormat.BASE64)
+            hex_message = (format(encoded['sin'], '02X') +
+                        format(encoded['min'], '02X') +
+                        base64.b64decode(encoded['data']).hex())
+            msg.decode(bytes.fromhex(hex_message))
+            payloadRaw = b2a_base64(bytearray.fromhex(hex_message)).strip().decode()
+            #logger.debug(payloadRaw)
+            assert(msg_copy == msg)
+            
+            logger.debug(f"--- EXPECTED: \n{raw_payload}")
+            logger.debug(f"----- RESULT: \n{encoded}")
