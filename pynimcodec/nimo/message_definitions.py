@@ -2,6 +2,7 @@
 import json
 import logging
 import os
+import base64
 from collections import OrderedDict
 
 from . import ET, XML_NAMESPACE
@@ -14,8 +15,12 @@ from .fields import (
     SignedIntField,
     StringField,
     UnsignedIntField,
+    MessageField,
+    DynamicField,
+    PropertyField
 )
 from .fields.base_field import FieldCodec, Fields
+from .fields.dynamic_field import DynamicType, VariableSize
 from .messages import MessageCodec, Messages
 from .services import ServiceCodec, Services
 
@@ -180,6 +185,12 @@ class MessageDefinitions:
                 array_fields.add(cls._parse_xml_field(xml_array_field))
             f_kwargs['fields'] = array_fields
             f_codec = BitmaskListField(f_name, items, **f_kwargs)
+        elif f_type == 'DynamicField':
+            f_codec = DynamicField(f_name, **f_kwargs)
+        elif f_type == 'PropertyField':
+            f_codec = PropertyField(f_name, **f_kwargs)
+        elif f_type == 'MessageField':
+            f_codec = MessageField(f_name, **f_kwargs)
         else:
             raise ValueError(f'Invalid field type {f_type}')
         return f_codec
@@ -265,12 +276,15 @@ def parse_field(field: dict, data: bytes, offset: int) -> 'tuple[dict, int]':
     """"""
     handler = {
         'arrayField': parse_array_field,
-        'uintField': parse_uint_field,
-        'intField': parse_int_field,
-        'boolField': parse_bool_field,
+        'unsignedintField': parse_unsignedint_field,
+        'signedintField': parse_signedint_field,
+        'booleanField': parse_bool_field,
         'enumField': parse_enum_field,
         'stringField': parse_str_field,
         'dataField': parse_data_field,
+        'propertyField': parse_dynamic_field,
+        'dynamicField': parse_dynamic_field,
+        'messageField': parse_message_field
     }
     field_type = field.get('type')
     if 'optional' in field:
@@ -288,7 +302,7 @@ def parse_field(field: dict, data: bytes, offset: int) -> 'tuple[dict, int]':
 def parse_generic(field: dict, value) -> dict:
     decoded = {
         'name': field.get('name'),
-        'value': value,
+        'value': str(value),
         'type': str(field.get('type')).replace('Field', ''),
     }
     if 'description' in field:
@@ -307,7 +321,7 @@ def parse_field_length(data: bytes, offset: int) -> 'tuple[int, int]':
 
 def parse_bool_field(field: dict, data: bytes, offset: int) -> 'tuple[dict, int]':
     """"""
-    value = extract_bits(data, offset, 1)
+    value = True if extract_bits(data, offset, 1) == 1 else False
     return parse_generic(field, value), offset + 1
 
 
@@ -315,7 +329,10 @@ def parse_enum_field(field: dict, data: bytes, offset: int) -> 'tuple[dict, int]
     """"""
     bits = field.get('size')
     enumerations = field.get('items')
-    value = enumerations[extract_bits(data, offset, bits)]
+    try:
+        value = enumerations[extract_bits(data, offset, bits)]
+    except:
+        value = extract_bits(data, offset, bits)
     return parse_generic(field, value), offset + bits
 
 
@@ -340,17 +357,19 @@ def parse_data_field(field: dict, data: bytes, offset: int) -> 'tuple[dict, int]
         data_len, offset = parse_field_length(data, offset)
     bits = 8 * data_len
     value = extract_bits(data, offset, bits).to_bytes(data_len, 'big')
+    #TODO: convert to base64?
+    value = base64.b64encode(value).decode('ascii')
     return parse_generic(field, value), offset + bits
 
 
-def parse_uint_field(field: dict, data: bytes, offset: int) -> 'tuple[dict, int]':
+def parse_unsignedint_field(field: dict, data: bytes, offset: int) -> 'tuple[dict, int]':
     """"""
     bits = field.get('size')
     value = extract_bits(data, offset, bits)
     return parse_generic(field, value), offset + bits
 
 
-def parse_int_field(field: dict, data: bytes, offset: int) -> 'tuple[dict, int]':
+def parse_signedint_field(field: dict, data: bytes, offset: int) -> 'tuple[dict, int]':
     """"""
     bits = field.get('size')
     value = extract_bits(data, offset, bits)
@@ -387,6 +406,47 @@ def parse_array_field(field: dict, data: bytes, offset: int) -> 'tuple[dict, int
     decoded = { 'name': array_name, 'fields': array_values }
     return decoded, offset
 
+def parse_dynamic_field(field: dict, data: bytes, offset: int) -> 'tuple[dict, int]':
+    """Parse the dynamic field type"""
+    dynamic_type = extract_bits(data, offset, 3)
+    offset += 3
+    if dynamic_type == DynamicType.BOOLEAN:
+        field['type'] = 'boolField'
+        return parse_bool_field(field, data, offset)
+    elif dynamic_type == DynamicType.ENUM:
+        field['type'] = 'enumField'
+        field['size'] = 8
+        return parse_enum_field(field, data, offset)
+    elif dynamic_type == DynamicType.VARUINT:
+        field['type'] = 'unsignedintField'
+        field['size'] = VariableSize(extract_bits(data, offset, 2)).to_size();
+        offset += 2;
+        return parse_unsignedint_field(field, data, offset)
+    elif dynamic_type == DynamicType.VARINT:
+        field['type'] = 'signedintField'
+        field['size'] = VariableSize(extract_bits(data, offset, 2)).to_size();
+        offset += 2;
+        return parse_signedint_field(field, data, offset)
+    elif dynamic_type == DynamicType.VARSTR:
+        field['type'] = 'stringField'
+        return parse_str_field(field, data, offset)
+    elif dynamic_type == DynamicType.VARDATA:
+        field['type'] = 'dataField'
+        return parse_data_field(field, data, offset)
+    else:
+        raise ValueError(f'No handler for dynamic_type {dynamic_type}')
+
+def parse_property_field(field: dict, data: bytes, offset: int) -> 'tuple[dict, int]':
+    """Handled by parse_dynamic_field"""
+    return None
+
+def parse_message_field(field: dict, data: bytes, offset: int) -> 'tuple[dict, int]':
+    #TODO:
+    # data_len, offset = parse_field_length(data, offset)
+    # bits = 8 * data_len
+    # value = extract_bits(data, offset, bits).to_bytes(data_len, 'big')
+    # return parse_generic(field, value), offset + bits
+    return None
 
 def decode_message(data: bytes,
                    codec_path: str,

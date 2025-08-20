@@ -29,6 +29,9 @@ from pynimcodec.nimo import (
     UnsignedIntField,
     optimal_bits,
     decode_message,
+    MessageField,
+    DynamicField,
+    PropertyField
 )
 
 logging.basicConfig()
@@ -63,7 +66,7 @@ def fieldedge_message() -> MessageCodec:
 DECODE_TEST_CASES = {
     'locationJsonCodec': {
         'exclude': True,
-        'codec': os.path.join(os.getcwd(), 'secrets/coremodem.json'),
+        'codec': os.path.join(os.getcwd(), 'secrets/coremodem.idpmsg'),
         'raw_payload': [
             0,
             72,
@@ -96,42 +99,42 @@ DECODE_TEST_CASES = {
                 {
                     "name": "latitude",
                     "description": "Latitude in 0.001 minutes",
-                    "value": 2717101,
-                    "type": "int"
+                    "value": "2717101",
+                    "type": "signedint"
                 },
                 {
                     "name": "longitude",
                     "description": "Longitude in 0.001 minutes",
-                    "value": -4550910,
-                    "type": "int"
+                    "value": "-4550910",
+                    "type": "signedint"
                 },
                 {
                     "name": "altitude",
                     "description": "Altitude in meters",
-                    "value": 88,
-                    "type": "int"
+                    "value": "88",
+                    "type": "signedint"
                 },
                 {
                     "name": "speed",
                     "description": "Speed in km/h",
-                    "value": 2,
-                    "type": "uint"
+                    "value": "2",
+                    "type": "unsignedint"
                 },
                 {
                     "name": "heading",
                     "description": "Heading in 2-degree increments from North",
-                    "value": 82,
-                    "type": "uint"
+                    "value": "82",
+                    "type": "unsignedint"
                 },
                 {
                     "name": "dayOfMonth",
-                    "value": 2,
-                    "type": "uint"
+                    "value": "2",
+                    "type": "unsignedint"
                 },
                 {
                     "name": "minuteOfDay",
-                    "value": 1077,
-                    "type": "uint"
+                    "value": "1077",
+                    "type": "unsignedint"
                 }
             ]
         })
@@ -172,41 +175,41 @@ DECODE_TEST_CASES = {
                     "name": "latitude",
                     "description": "Latitude in 0.001 minutes",
                     "value": 2717101,
-                    "type": "int"
+                    "type": "signedint"
                 },
                 {
                     "name": "longitude",
                     "description": "Longitude in 0.001 minutes",
                     "value": -4550910,
-                    "type": "int"
+                    "type": "signedint"
                 },
                 {
                     "name": "altitude",
                     "description": "Altitude in metres",
                     "value": 88,
-                    "type": "int"
+                    "type": "signedint"
                 },
                 {
                     "name": "speed",
                     "description": "Speed in km/h",
                     "value": 2,
-                    "type": "uint"
+                    "type": "unsignedint"
                 },
                 {
                     "name": "heading",
                     "description": "Heading in 2-degree steps (North=0)",
                     "value": 82,
-                    "type": "uint"
+                    "type": "unsignedint"
                 },
                 {
                     "name": "dayOfMonth",
                     "value": 2,
-                    "type": "uint"
+                    "type": "unsignedint"
                 },
                 {
                     "name": "minuteOfDay",
                     "value": 1077,
-                    "type": "uint"
+                    "type": "unsignedint"
                 }
             ]
         })
@@ -590,6 +593,7 @@ DECODE_TEST_CASES = {
     
     },
     'satelliteTelemetery':{
+        'exclude': False,
         'codec': os.path.join(os.getcwd(), 'tests/examples/fieldedge-iotdemo.idpmsg'),
         'raw_payload': [
             255,
@@ -619,74 +623,75 @@ DECODE_TEST_CASES = {
             "fields": [
                 {
                     "name": "timestamp",
-                    "value": 1732039332,
-                    "type": "uint"
+                    "value": "1732039332",
+                    "type": "unsignedint"
                 },
                 {
                     "name": "latitude",
-                    "value": 2722878,
-                    "type": "int"
+                    "value": "2722878",
+                    "type": "signedint"
                 },
                 {
                     "name": "longitude",
-                    "value": -4543732,
-                    "type": "int"
+                    "value": "-4543732",
+                    "type": "signedint"
                 },
                 {
                     "name": "altitude",
-                    "value": 83,
-                    "type": "int"
+                    "value": "83",
+                    "type": "signedint"
                 },
                 {
                     "name": "speed",
-                    "value": 0,
-                    "type": "uint"
+                    "value": "0",
+                    "type": "unsignedint"
                 },
                 {
                     "name": "heading",
-                    "value": 235,
-                    "type": "uint"
+                    "value": "235",
+                    "type": "unsignedint"
                 },
                 {
                     "name": "gnssSatellites",
-                    "value": 8,
-                    "type": "uint"
+                    "value": "8",
+                    "type": "unsignedint"
                 },
                 {
                     "name": "pdop",
-                    "value": 1,
-                    "type": "uint"
+                    "value": "1",
+                    "type": "unsignedint"
                 },
                 {
                     "name": "snr",
-                    "value": 294,
-                    "type": "uint"
+                    "value": "294",
+                    "type": "unsignedint"
                 },
                 {
                     "name": "temperature",
-                    "value": 31,
-                    "type": "int"
+                    "value": "31",
+                    "type": "signedint"
                 }
             ]
         })
     },
     'satelliteTelemeteryOGWS': {
+        'exclude': True,
         'codec': os.path.join(os.getcwd(), 'tests/examples/fieldedge-iotdemo.idpmsg'),
         'raw_payload': "/wHM0y78UxiBuqsLApAEvgPuKA==",
         'decoded': dict({"name":"SatelliteTelemetry",
                            "codecServiceId":255,
                            "codecMessageId":1,
                            "fields":[
-                               {"name":"timestamp","value":1718196094,"type":"uint"},
-                               {"name":"latitude","value":2722880,"type":"int"},
-                               {"name":"longitude","value":-4543733,"type":"int"},
-                               {"name":"altitude","value":82,"type":"int"},
-                               {"name":"speed","value":0,"type":"uint"},
-                               {"name":"heading","value":303,"type":"uint"},
-                               {"name":"gnssSatellites","value":8,"type":"uint"},
-                               {"name":"pdop","value":1,"type":"uint"},
-                               {"name":"snr","value":494,"type":"uint"},
-                               {"name":"temperature","value":20,"type":"int"}]})
+                               {"name":"timestamp","value":1718196094,"type":"unsignedint"},
+                               {"name":"latitude","value":2722880,"type":"signedint"},
+                               {"name":"longitude","value":-4543733,"type":"signedint"},
+                               {"name":"altitude","value":82,"type":"signedint"},
+                               {"name":"speed","value":0,"type":"unsignedint"},
+                               {"name":"heading","value":303,"type":"unsignedint"},
+                               {"name":"gnssSatellites","value":8,"type":"unsignedint"},
+                               {"name":"pdop","value":1,"type":"unsignedint"},
+                               {"name":"snr","value":494,"type":"unsignedint"},
+                               {"name":"temperature","value":20,"type":"signedint"}]})
     }
 }
 

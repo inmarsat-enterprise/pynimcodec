@@ -32,7 +32,12 @@ class BooleanField(FieldCodec):
 
     @default.setter
     def default(self, v: bool):
-        if v is not None and not isinstance(v, bool):
+        if isinstance(v, str):
+            if v not in ['true','false']:
+                raise ValueError(f'Invalid boolean value {v}')
+            else:
+                v = True if v.lower() == 'true' else False
+        elif v is not None and not isinstance(v, bool):
             raise ValueError(f'Invalid boolean value {v}')
         self._default = v
 
@@ -42,7 +47,12 @@ class BooleanField(FieldCodec):
 
     @value.setter
     def value(self, v: bool):
-        if v is not None and not isinstance(v, bool):
+        if isinstance(v, str):
+            if v not in ['true','false']:
+                raise ValueError(f'Invalid boolean value {v}')
+            else:
+                v = True if v.lower() == 'true' else False
+        elif v is not None and not isinstance(v, bool):
             raise ValueError(f'Invalid boolean value {v}')
         self._value = v
 

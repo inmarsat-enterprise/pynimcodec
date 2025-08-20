@@ -47,6 +47,17 @@
               <Name>testData</Name>
               <Size>4</Size>
             </Field>
+            <Field xsi:type="MessageField">
+              <Name>testMessage</Name>
+            </Field>
+            <Field xsi:type="DynamicField">
+              <Name>testDynamic</Name>
+            </Field>
+            <Field xsi:type="PropertyField">
+              <Name>testProperty</Name>
+              <SIN>1</SIN>
+              <PIN>2</PIN>
+            </Field>
           </Fields>
         </Message>
       </ReturnMessages>

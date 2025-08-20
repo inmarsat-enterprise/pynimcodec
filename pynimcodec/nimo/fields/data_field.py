@@ -5,6 +5,7 @@ from .. import ET, DATA_TYPES
 from .base_field import FieldCodec
 from .helpers import decode_field_length, encode_field_length
 
+import base64
 
 class DataField(FieldCodec):
     """A data field of raw bytes sent over-the-air.
@@ -14,7 +15,7 @@ class DataField(FieldCodec):
     """
     # SUPPORTED_DATA_TYPES = ['data', 'float', 'double']
     def __init__(self, name: str, size: int, **kwargs):
-        """Instantiates a EnumField.
+        """Instantiates a DataField.
         
         Args:
             name (str): The field name must be unique within a Message.
@@ -198,6 +199,8 @@ class DataField(FieldCodec):
             binary = binary_str[bit_index:length * 8 + bit_index]
             bits = len(binary)
         self._value = int(binary, 2).to_bytes(int(bits / 8), 'big')
+        #TODO: Convert to base64?
+        self._value = base64.b64encode(self._value).decode('ascii')
         return self.bits
 
     def xml(self) -> ET.Element:

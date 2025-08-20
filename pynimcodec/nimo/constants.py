@@ -29,17 +29,23 @@ DATA_TYPES = {
     'enum': 'EnumField',
     'array': 'ArrayField',
     'bml': 'BitmaskListField',
+    'msg': 'MessageField',
+    'dynamic': 'DynamicField',
+    'prop': 'PropertyField'
 }
 
 FIELD_TYPES_JSON = {
-    'BooleanField': 'boolField',
+    'BooleanField': 'booleanField',
     'EnumField': 'enumField',
     'DataField': 'dataField',
     'ArrayField': 'arrayField',
-    'SignedIntField': 'intField',
-    'UnsignedIntField': 'uintField',
+    'SignedIntField': 'signedintField',
+    'UnsignedIntField': 'unsignedintField',
     'StringField': 'stringField',
     'BitmaskListField': 'bmlField',
+    'MessageField': 'messageField',
+    'DynamicField': 'dynamicField',
+    'PropertyField': 'propertyField'
 }
 
 SIN_RANGE = (16, 255)
