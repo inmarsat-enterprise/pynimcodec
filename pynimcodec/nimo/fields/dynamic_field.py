@@ -5,7 +5,7 @@ from .base_field import FieldCodec
 from .helpers import decode_field_length, encode_field_length
 from enum import IntEnum
 
-class DynamicTypes(IntEnum):
+class DynamicType(IntEnum):
     ENUM = 0
     BOOLEAN = 1
     VARUINT = 2
@@ -13,7 +13,8 @@ class DynamicTypes(IntEnum):
     VARSTR = 4
     VARDATA = 5
 
-class VariableSizes(IntEnum):
+class VariableSize(IntEnum):
+    """In MDF, 2 bits are used to encode variable Unsigned or Signed Int size"""
     EIGHT = 0
     SIXTEEN = 1
     THIRTYTWO = 2
@@ -22,10 +23,10 @@ class VariableSizes(IntEnum):
     def to_size(self) -> int:
         """Convert enum value to its actual size in bits."""
         mapping = {
-            VariableSizes.EIGHT: 8,
-            VariableSizes.SIXTEEN: 16,
-            VariableSizes.THIRTYTWO: 32,
-            VariableSizes.RESERVED: None
+            VariableSize.EIGHT: 8,
+            VariableSize.SIXTEEN: 16,
+            VariableSize.THIRTYTWO: 32,
+            VariableSize.RESERVED: None
         }
         return mapping[self]
 
@@ -60,8 +61,8 @@ class DynamicField(FieldCodec):
             raise ValueError(f'Invalid value {s}')
         return s
 
-    def _validate_type(self, t: int) -> DynamicTypes:
-        if t not in DynamicTypes._value2member_map_:
+    def _validate_type(self, t: int) -> DynamicType:
+        if t not in DynamicType._value2member_map_:
             raise ValueError(f'Invalid DynamicType {t}')
         return t
 
@@ -89,7 +90,7 @@ class DynamicField(FieldCodec):
         else:
             # L = 8 if len(self._value) < 128 else 16
             # bits = L + len(self._value) * 8
-            if self._type == DynamicTypes.ENUM:
+            if self._type == DynamicType.ENUM:
                 bits = 0
             else:
                 raise ValueError(f'Unknown DynamicField Type: {self._type}')
@@ -113,11 +114,11 @@ class DynamicField(FieldCodec):
         Returns:
             The bit offset after parsing
         """
-        dType = DynamicTypes(int(binary_str[:3],2))
+        dType = DynamicType(int(binary_str[:3],2))
         
-        # if(dType == DynamicTypes.ENUM):
+        # if(dType == DynamicType.ENUM):
             
-        # elif (dType == DynamicTypes.BOOLEAN):
+        # elif (dType == DynamicType.BOOLEAN):
             
         # else:
         #     raise ValueError(f'Unknown DynamicField Type: {self._type}')

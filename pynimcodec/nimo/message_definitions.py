@@ -20,7 +20,7 @@ from .fields import (
     PropertyField
 )
 from .fields.base_field import FieldCodec, Fields
-from .fields.dynamic_field import DynamicTypes, VariableSizes
+from .fields.dynamic_field import DynamicType, VariableSize
 from .messages import MessageCodec, Messages
 from .services import ServiceCodec, Services
 
@@ -410,27 +410,27 @@ def parse_dynamic_field(field: dict, data: bytes, offset: int) -> 'tuple[dict, i
     """Parse the dynamic field type"""
     dynamic_type = extract_bits(data, offset, 3)
     offset += 3
-    if dynamic_type == DynamicTypes.BOOLEAN:
+    if dynamic_type == DynamicType.BOOLEAN:
         field['type'] = 'boolField'
         return parse_bool_field(field, data, offset)
-    elif dynamic_type == DynamicTypes.ENUM:
+    elif dynamic_type == DynamicType.ENUM:
         field['type'] = 'enumField'
         field['size'] = 8
         return parse_enum_field(field, data, offset)
-    elif dynamic_type == DynamicTypes.VARUINT:
+    elif dynamic_type == DynamicType.VARUINT:
         field['type'] = 'unsignedintField'
-        field['size'] = VariableSizes(extract_bits(data, offset, 2)).to_size();
+        field['size'] = VariableSize(extract_bits(data, offset, 2)).to_size();
         offset += 2;
         return parse_unsignedint_field(field, data, offset)
-    elif dynamic_type == DynamicTypes.VARINT:
+    elif dynamic_type == DynamicType.VARINT:
         field['type'] = 'signedintField'
-        field['size'] = VariableSizes(extract_bits(data, offset, 2)).to_size();
+        field['size'] = VariableSize(extract_bits(data, offset, 2)).to_size();
         offset += 2;
         return parse_signedint_field(field, data, offset)
-    elif dynamic_type == DynamicTypes.VARSTR:
+    elif dynamic_type == DynamicType.VARSTR:
         field['type'] = 'stringField'
         return parse_str_field(field, data, offset)
-    elif dynamic_type == DynamicTypes.VARDATA:
+    elif dynamic_type == DynamicType.VARDATA:
         field['type'] = 'dataField'
         return parse_data_field(field, data, offset)
     else:
