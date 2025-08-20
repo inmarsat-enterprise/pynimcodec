@@ -3,7 +3,7 @@ import xml.etree.ElementTree as ET
 from .constants import XML_NAMESPACE, DataFormat, DATA_TYPES, SIN_RANGE, FIELD_TYPES_JSON
 from .fields import (ArrayField, BooleanField, DataField, EnumField,
                      SignedIntField, StringField, UnsignedIntField,
-                     BitmaskListField)
+                     BitmaskListField, MessageField, DynamicField, PropertyField)
 from .fields.base_field import FieldCodec, Fields
 from .fields.helpers import optimal_bits
 from .message_definitions import MessageDefinitions, decode_message
@@ -21,6 +21,9 @@ __all__ = [
     'SignedIntField',
     'StringField',
     'UnsignedIntField',
+    'MessageField',
+    'DynamicField',
+    'PropertyField',
     'CodecList',
     'FieldCodec',
     'Fields',

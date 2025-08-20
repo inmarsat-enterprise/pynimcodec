@@ -32,7 +32,7 @@
                 "items": ["enumString0", "enumString1"]
               },
               {
-                "type": "uintField",
+                "type": "unsignedintField",
                 "name": "testUint",
                 "description": null,
                 "optional": null,
@@ -40,7 +40,7 @@
                 "size": 32
               },
               {
-                "type": "intField",
+                "type": "signedintField",
                 "name": "testUint",
                 "description": null,
                 "optional": null,
@@ -73,7 +73,7 @@
                 "fixed": null,
                 "fields": [
                   {
-                    "type": "intField",
+                    "type": "signedintField",
                     "name": "testArrayIntCol0",
                     "description": null,
                     "optional": null,
@@ -81,7 +81,7 @@
                     "default": null
                   },
                   {
-                    "type": "intField",
+                    "type": "signedintField",
                     "name": "testArrayIntCol1",
                     "description": null,
                     "optional": null,

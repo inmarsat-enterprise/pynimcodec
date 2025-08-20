@@ -29,6 +29,9 @@ from pynimcodec.nimo import (
     UnsignedIntField,
     optimal_bits,
     decode_message,
+    MessageField,
+    DynamicField,
+    PropertyField
 )
 
 EXPORT_DIR = os.getenv('EXPORT_DIR', 'tests/examples')
@@ -154,10 +157,10 @@ def int_field() -> SignedIntField:
 
 @pytest.fixture
 def uint_field() -> UnsignedIntField:
-    def _uint_field(name: str = 'signedintField',
+    def _uint_field(name: str = 'unsignedintField',
                    size: int = 16,
-                   data_type: str = 'int_16',
-                   description: str = 'A signedint field'):
+                   data_type: str = 'uint_16',
+                   description: str = 'A unsignedint field'):
         return UnsignedIntField(name=name,
                                 size=size,
                                 data_type=data_type,

@@ -7,6 +7,9 @@ from .enum_field import EnumField
 from .integer_field import SignedIntField, UnsignedIntField
 from .string_field import StringField
 from .bitmasklist_field import BitmaskListField
+from .message_field import MessageField
+from .dynamic_field import DynamicField
+from .property_field import PropertyField
 
 __all__ = [
     'ArrayField',
@@ -17,4 +20,7 @@ __all__ = [
     'StringField',
     'UnsignedIntField',
     'BitmaskListField',
+    'MessageField',
+    'DynamicField',
+    'PropertyField'
 ]
