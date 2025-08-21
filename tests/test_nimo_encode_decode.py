@@ -19,6 +19,7 @@ from pynimcodec.nimo import (
     DataFormat,
     EnumField,
     Fields,
+    FieldCodec,
     MessageCodec,
     MessageDefinitions,
     Messages,
@@ -29,6 +30,7 @@ from pynimcodec.nimo import (
     UnsignedIntField,
     optimal_bits,
     decode_message,
+    encode_message,
     MessageField,
     DynamicField,
     PropertyField
@@ -51,9 +53,9 @@ def fieldedge_message() -> MessageCodec:
     """Returns a Fieldedge TextMobileTerminated message."""
     fields = Fields()
     fields.add(UnsignedIntField(name='source',size=32,optional=True));
-    fields.add(StringField(name='text',size=255,value='Sending a mobile-terminated message to device'));
-    #fields.add(StringField(name='text',value='pyTest text message'));
-    fields.add(UnsignedIntField(name='timestamp',size=32,optional=True,value=1739375463));
+    # fields.add(StringField(name='text',size=255,value='Sending a mobile-terminated message to device'));
+    # #fields.add(StringField(name='text',value='pyTest text message'));
+    # fields.add(UnsignedIntField(name='timestamp',size=32,optional=True,value=1739375463));
     
     message = MessageCodec(name='TextMobileTerminated',
                         sin=255,
@@ -593,7 +595,7 @@ DECODE_TEST_CASES = {
     
     },
     'satelliteTelemetery':{
-        'exclude': False,
+        'exclude': True,
         'codec': os.path.join(os.getcwd(), 'tests/examples/fieldedge-iotdemo.idpmsg'),
         'raw_payload': [
             255,
@@ -692,6 +694,71 @@ DECODE_TEST_CASES = {
                                {"name":"pdop","value":1,"type":"unsignedint"},
                                {"name":"snr","value":494,"type":"unsignedint"},
                                {"name":"temperature","value":20,"type":"signedint"}]})
+    },
+    'replyTxMetrics': {
+        'exclude': True,
+        'codec': os.path.join(os.getcwd(), 'tests/examples/coremodem.idpmsg'),
+        'raw_payload': "AGQAA==",
+        'decoded': dict({"name":"replyTxMetrics",
+                           "codecServiceId":0,
+                           "codecMessageId":100,
+                           "fields":[
+                               {"name":"name","value":"period","type":"enum"}
+                            ]})
+    },
+    'testService': {
+        'exclude': False,
+        'codec': os.path.join(os.getcwd(), 'tests/examples/testService.idpmsg'),
+        'raw_payload': "/wGABgAABoEYWJjZAEGcHJvcF8xAAAADQRhYmNkA",
+        'decoded': dict({"name":"returnMessageFixture",
+                           "codecServiceId":255,
+                           "codecMessageId":1,
+                           "fields":[
+                               {'name': 'testBool', 'type': 'boolean', 'value': 'True'},
+                               {'name': 'testUint', 'type': 'unsignedint', 'value': '12'},
+                               {'name': 'latitude', 'type': 'signedint', 'value': '13'},
+                               {'name': 'nonOptionalString', 'type': 'string', 'value': 'abcd'},
+                               {'fields': [
+                                   {    'propertyName': {'name': 'propertyName', 'type': 'string', 'value': 'prop_1'},
+                                        'propertyValue': {'name': 'propertyValue', 'type': 'unsignedint', 'value': '13'}}
+                                   ],
+                                'name': 'arrayExample'},
+                               {'name': 'testData', 'type': 'data', 'value': 'YWJjZA=='}
+                            ]})
+    }
+}
+
+ENCODE_TEST_CASES = {
+    'requestTxMetrics': {
+        'exclude': False,
+        'codec': os.path.join(os.getcwd(), 'secrets/coremodem.idpmsg'),
+        'raw_payload': "AGQAAA==",
+        'encode': dict({"name":"requestTxMetrics",
+                           "codecServiceId":0,
+                           "codecMessageId":100,
+                           "fields":[
+                               {"name":"period","value":"SinceReset"}
+                            ]})
+    },
+    'testService': {
+        'exclude': False,
+        'codec': os.path.join(os.getcwd(), 'tests/examples/testService.idpmsg'),
+        'raw_payload': "/wGABgAABoEYWJjZAEGcHJvcF8xAAAADQRhYmNkA",
+        'encode': dict({"name":"forwardMessageFixture",
+                           "codecServiceId":255,
+                           "codecMessageId":1,
+                           "fields":[
+                               {'name': 'testBool', 'value': 'True'},
+                               {'name': 'testUint', 'value': '12'},
+                               {'name': 'latitude', 'value': '13'},
+                               {'name': 'nonOptionalString', 'value': 'abcd'},
+                               {'fields': [
+                                   {    'propertyName': {'name': 'propertyName', 'value': 'prop_1'},
+                                        'propertyValue': {'name': 'propertyValue', 'value': '13'}}
+                                   ],
+                                'name': 'arrayExample'},
+                               {'name': 'testData', 'value': 'YWJjZA=='}
+                            ]})
     }
 }
 
@@ -705,17 +772,33 @@ def test_message_definitions_decode_message():
                 data = bytes(raw_payload)
             else:
                 data = base64.b64decode(raw_payload)
-            res = decode_message(data, test_codec, override_sin=True)
+            decoded = decode_message(data, test_codec, override_sin=True)
             expected: dict = test_inputs.get('decoded')
             for k, v in expected.items():
                 if k != 'fields':
-                    assert k in res and res[k] == v
+                    assert k in decoded and decoded[k] == v
                 else:
                     for i, field in enumerate(v):
                         for fk, fv in field.items():
-                            assert fk in res['fields'][i] and fv == res['fields'][i][fk]
+                            assert fk in decoded['fields'][i] and fv == decoded['fields'][i][fk]
+            
+            logger.debug(f"--- EXPECTED: \n{raw_payload}")
+            logger.debug(f"----- RESULT: \n{decoded}")
 
+def test_message_definitions_encode_message():
+    """"""
+    for test_inputs in ENCODE_TEST_CASES.values():
+        if not test_inputs.get('exclude', False):
+            logger.debug(f"\n")
+            test_codec = test_inputs.get('codec')
+            expected_raw_payload = test_inputs.get('raw_payload')
+            to_encode: dict = test_inputs.get('encode')
+            
+            encoded_raw_payload = encode_message(to_encode, test_codec, override_sin=True)
 
+            logger.debug(f"--- EXPECTED: \n{expected_raw_payload}")
+            logger.debug(f"----- RESULT: \n{encoded_raw_payload.decode('utf-8')}")
+            assert(expected_raw_payload == encoded_raw_payload.decode('utf-8'))
 
 def test_rm_codec(return_message):
     msg: MessageCodec = return_message

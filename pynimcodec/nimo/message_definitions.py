@@ -23,6 +23,7 @@ from .fields.base_field import FieldCodec, Fields
 from .fields.dynamic_field import DynamicType, VariableSize
 from .messages import MessageCodec, Messages
 from .services import ServiceCodec, Services
+from . import DataFormat
 
 _log = logging.getLogger(__name__)
 
@@ -509,3 +510,43 @@ def decode_message(data: bytes,
             break
         break
     return decoded
+
+def encode_message(data: dict,
+                   codec_path: str,
+                   **kwargs) -> bytes:
+    
+    mdf_xml = os.path.join(os.getcwd(), codec_path)
+    md = MessageDefinitions.from_mdf(
+        mdf_xml,
+        override_sin = kwargs.get('override_sin', False)
+    )
+
+    codec_sin, codec_min = (data['codecServiceId'], data['codecMessageId'])
+    service: ServiceCodec = next((item for item in md.services if item.sin == codec_sin), None)
+    message: MessageCodec = next((item for item in service.messages_forward if item.min == codec_min), None)
+
+    for field_item in data['fields']:
+        field_name = field_item.get("name")
+        field_value = field_item.get("value")
+        field: FieldCodec = next((item for item in message.fields if item.name == field_name), None)
+        if "value" not in field_item and "fields" in  field_item:
+            elements = []
+            for subfield in field_item["fields"]:
+                for subfield_item in subfield.values():
+                    subfield_name = subfield_item.get("name")
+                    subfield_value = subfield_item.get("value")
+                    subfield: FieldCodec = next((item for item in field.fields if item.name == subfield_name), None)
+                    subfield.value = subfield_value
+                    elements.append(subfield)
+            field.elements.append(elements)
+        else:
+            field.value = field_value
+    encoded_payload = message.encode(DataFormat.BASE64)
+    
+    hex_message = (format(encoded_payload['sin'], '02X') +
+                format(encoded_payload['min'], '02X') +
+                base64.b64decode(encoded_payload['data']).hex())
+    bytes_from_hex = bytes.fromhex(hex_message)
+    encoded_raw_payload = base64.b64encode(bytes_from_hex)
+    
+    return encoded_raw_payload

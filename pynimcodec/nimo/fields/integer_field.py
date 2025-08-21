@@ -63,6 +63,10 @@ class UnsignedIntField(FieldCodec):
     def value(self, v: int):
         clip = False
         if v is not None:
+            try:
+                v = int(v)
+            except:
+                ValueError('Invalid Unsignedint value')
             if not isinstance(v, int) or v < 0:
                 raise ValueError('Unsignedint must be non-negative integer')
             if v > 2**self.size - 1:
@@ -172,6 +176,10 @@ class SignedIntField(FieldCodec):
     def value(self, v: int):
         clip = False
         if v is not None:
+            try:
+                v = int(v)
+            except:
+                ValueError('Invalid Unsignedint value')
             if not isinstance(v, int):
                 raise ValueError('Unsignedint must be non-negative integer')
             if v > (2**self.size / 2) - 1:

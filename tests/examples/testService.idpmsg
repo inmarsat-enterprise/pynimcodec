@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="utf-8"?>
+<MessageDefinition xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+	<Services>
+		<Service>
+			<Name>testService</Name>
+			<SIN>255</SIN>
+			<ForwardMessages>
+				<Message>
+					<Name>forwardMessageFixture</Name>
+					<MIN>1</MIN>
+					<Fields>
+						<Field xsi:type="BooleanField">
+							<Name>testBool</Name>
+						</Field>
+						<Field xsi:type="UnsignedIntField">
+							<Name>testUint</Name>
+							<Size>16</Size>
+						</Field>
+						<Field xsi:type="SignedIntField">
+							<Name>latitude</Name>
+							<Size>24</Size>
+						</Field>
+						<Field xsi:type="StringField">
+							<Name>optionalString</Name>
+							<Optional>true</Optional>
+							<Size>100</Size>
+						</Field>
+						<Field xsi:type="StringField">
+							<Name>nonOptionalString</Name>
+							<Size>100</Size>
+						</Field>
+						<Field xsi:type="ArrayField">
+							<Name>arrayExample</Name>
+							<Fields>
+								<Field xsi:type="StringField">
+									<Name>propertyName</Name>
+									<Size>50</Size>
+								</Field>
+								<Field xsi:type="UnsignedIntField">
+									<Name>propertyValue</Name>
+									<Size>32</Size>
+								</Field>
+							</Fields>
+							<Size>50</Size>
+						</Field>
+						<Field xsi:type="DataField">
+							<Name>testData</Name>
+							<Size>4</Size>
+						</Field>
+					</Fields>
+				</Message>
+			</ForwardMessages>
+            <ReturnMessages>
+				<Message>
+					<Name>returnMessageFixture</Name>
+					<MIN>1</MIN>
+					<Fields>
+						<Field xsi:type="BooleanField">
+							<Name>testBool</Name>
+						</Field>
+						<Field xsi:type="UnsignedIntField">
+							<Name>testUint</Name>
+							<Size>16</Size>
+						</Field>
+						<Field xsi:type="SignedIntField">
+							<Name>latitude</Name>
+							<Size>24</Size>
+						</Field>
+						<Field xsi:type="StringField">
+							<Name>optionalString</Name>
+							<Optional>true</Optional>
+							<Size>100</Size>
+						</Field>
+						<Field xsi:type="StringField">
+							<Name>nonOptionalString</Name>
+							<Size>100</Size>
+						</Field>
+						<Field xsi:type="ArrayField">
+							<Name>arrayExample</Name>
+							<Fields>
+								<Field xsi:type="StringField">
+									<Name>propertyName</Name>
+									<Size>50</Size>
+								</Field>
+								<Field xsi:type="UnsignedIntField">
+									<Name>propertyValue</Name>
+									<Size>32</Size>
+								</Field>
+							</Fields>
+							<Size>50</Size>
+						</Field>
+						<Field xsi:type="DataField">
+							<Name>testData</Name>
+							<Size>4</Size>
+						</Field>
+					</Fields>
+				</Message>
+			</ReturnMessages>
+		</Service>
+	</Services>
+</MessageDefinition>

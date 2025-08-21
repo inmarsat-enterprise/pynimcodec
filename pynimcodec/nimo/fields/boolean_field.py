@@ -33,7 +33,7 @@ class BooleanField(FieldCodec):
     @default.setter
     def default(self, v: bool):
         if isinstance(v, str):
-            if v not in ['true','false']:
+            if v.lower() not in ['true','false']:
                 raise ValueError(f'Invalid boolean value {v}')
             else:
                 v = True if v.lower() == 'true' else False
@@ -48,7 +48,7 @@ class BooleanField(FieldCodec):
     @value.setter
     def value(self, v: bool):
         if isinstance(v, str):
-            if v not in ['true','false']:
+            if v.lower() not in ['true','false']:
                 raise ValueError(f'Invalid boolean value {v}')
             else:
                 v = True if v.lower() == 'true' else False

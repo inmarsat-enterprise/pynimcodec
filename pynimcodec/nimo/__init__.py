@@ -6,7 +6,7 @@ from .fields import (ArrayField, BooleanField, DataField, EnumField,
                      BitmaskListField, MessageField, DynamicField, PropertyField)
 from .fields.base_field import FieldCodec, Fields
 from .fields.helpers import optimal_bits
-from .message_definitions import MessageDefinitions, decode_message
+from .message_definitions import MessageDefinitions, decode_message, encode_message
 from .messages import MessageCodec, Messages
 from .services import ServiceCodec, Services
 
@@ -37,5 +37,6 @@ __all__ = [
     'Services',
     'optimal_bits',
     'decode_message',
+    'encode_message',
     'FIELD_TYPES_JSON',
 ]

@@ -75,6 +75,10 @@ class DataField(FieldCodec):
     def _validate_data(self, v: 'bytes|float') -> bytes:
         """Ensures the data is of the target field size and encoding."""
         data_type = self.data_type
+        if isinstance(v, (list)):
+            v = bytes(v)
+        else:
+            v = base64.b64decode(v)
         if not ((isinstance(v, bytes) and data_type == 'data') or
                 (isinstance(v, float) and data_type in ['float', 'double'])):
             raise ValueError(f'Data {type(v)} does not match {data_type}')
