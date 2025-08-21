@@ -46,11 +46,11 @@ class EnumField(FieldCodec):
     def _validate_enum(self, v: 'int|str') -> 'int|None':
         if v is not None:
             if isinstance(v, str):
-                if isinstance(int(v), int):
+                try:
                     v = int(v)
                     if v < 0 or v >= len(self.items):
                         raise ValueError(f'Invalid enum index {v}')
-                else:
+                except:
                     if v not in self.items:
                         raise ValueError(f'Invalid value {v} not in items')
                     for index, item in enumerate(self.items):
