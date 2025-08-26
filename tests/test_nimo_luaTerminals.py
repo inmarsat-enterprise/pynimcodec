@@ -149,11 +149,9 @@ LUATERM_DECODE_TEST_CASES = {
             ]})
     },
     'fullReport': {
-        'exclude': True,
+        'exclude': False,
         'codec': os.path.join(os.getcwd(), 'secrets/luaTerminals.idpmsg'),
-        'raw_payload': [
-            19, 2, 48, 2, 224, 2, 232, 15, 55, 127, 255, 181, 147, 160, 1, 0, 12, 118, 115, 69, 109, 126, 192, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 48, 33, 74, 238, 49, 0
-        ],
+        'raw_payload': "EwIwAuAC6A83f/+1k6ABAAx2c0VtfsAAQAAAQAAAQAAAQAMIUruMQA==",
         'decoded': dict({
             "name": "fullReport",
             "codecServiceId": 19,
@@ -259,9 +257,7 @@ LUATERM_DECODE_TEST_CASES = {
     'eio': {
         'exclude': False,
         'codec': os.path.join(os.getcwd(), 'secrets/luaTerminals.idpmsg'),
-        'raw_payload': [
-            19, 3, 0, 8, 0, 0, 8, 0, 0, 8, 0, 0, 8, 0, 97, 10, 87, 111, 136
-        ],
+        'raw_payload': "EwMACAAACAAACAAACABhCldviA==",
         'decoded': dict({
             "name": "EIO",
             "codecServiceId": 19,
@@ -323,6 +319,31 @@ LUATERM_DECODE_TEST_CASES = {
                     "type": "boolean"
                 }
             ]})
+    },
+    'msgError': {
+        'exclude': False,
+        'codec': os.path.join(os.getcwd(), 'secrets/luaTerminals.idpmsg'),
+        'raw_payload': "EgQfc3ZjLnJlcG9ydDogU0lOIDMwIGlzIG5vdCB2YWxpZBMB",
+        'decoded': dict({"name":"msgError",
+                           "codecServiceId":18,
+                           "codecMessageId":4,
+                           "fields":[
+                               {
+                                    "name": "desc",
+                                    "value": "svc.report: SIN 30 is not valid",
+                                    "type": "string"
+                                },
+                                {
+                                    "name": "sin",
+                                    "value": "19",
+                                    "type": "unsignedint"
+                                },
+                                {
+                                    "name": "min",
+                                    "value": "1",
+                                    "type": "unsignedint"
+                                }
+                            ]})
     },
     'serviceInfo': {
         'exclude': False,
