@@ -412,7 +412,7 @@ def parse_dynamic_field(field: dict, data: bytes, offset: int) -> 'tuple[dict, i
     dynamic_type = extract_bits(data, offset, 3)
     offset += 3
     if dynamic_type == DynamicType.BOOLEAN:
-        field['type'] = 'boolField'
+        field['type'] = 'booleanField'
         return parse_bool_field(field, data, offset)
     elif dynamic_type == DynamicType.ENUM:
         field['type'] = 'enumField'
@@ -526,15 +526,15 @@ def encode_message(data: dict,
     message: MessageCodec = next((item for item in service.messages_forward if item.min == codec_min), None)
 
     for field_item in data['fields']:
-        field_name = field_item.get("name")
-        field_value = field_item.get("value")
+        field_name = field_item.get("name") or field_item.get("Name")
+        field_value = field_item.get("value") or field_item.get("Value")
         field: FieldCodec = next((item for item in message.fields if item.name == field_name), None)
         if "value" not in field_item and "fields" in  field_item:
             elements = []
             for subfield in field_item["fields"]:
                 for subfield_item in subfield.values():
-                    subfield_name = subfield_item.get("name")
-                    subfield_value = subfield_item.get("value")
+                    subfield_name = subfield_item.get("name") or field_item.get("Name")
+                    subfield_value = subfield_item.get("value") or field_item.get("Value")
                     subfield: FieldCodec = next((item for item in field.fields if item.name == subfield_name), None)
                     subfield.value = subfield_value
                     elements.append(subfield)

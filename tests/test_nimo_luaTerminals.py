@@ -152,7 +152,7 @@ LUATERM_DECODE_TEST_CASES = {
         'exclude': True,
         'codec': os.path.join(os.getcwd(), 'secrets/luaTerminals.idpmsg'),
         'raw_payload': [
-            19, 2
+            19, 2, 48, 2, 224, 2, 232, 15, 55, 127, 255, 181, 147, 160, 1, 0, 12, 118, 115, 69, 109, 126, 192, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 48, 33, 74, 238, 49, 0
         ],
         'decoded': dict({
             "name": "fullReport",
@@ -161,17 +161,17 @@ LUATERM_DECODE_TEST_CASES = {
             "fields": [
                 {
                     "name": "fixValid",
-                    "value": "1",
-                    "type": "bool"
+                    "value": "True",
+                    "type": "boolean"
                 },
                 {
                     "name": "fixType",
-                    "value": "2D",
+                    "value": "1",
                     "type": "enum"
                 },
                 {
                     "name": "latitude",
-                    "value": "3047664",
+                    "value": "3047667",
                     "type": "signedint"
                 },
                 {
@@ -191,13 +191,136 @@ LUATERM_DECODE_TEST_CASES = {
                 },
                 {
                     "name": "altitude",
-                    "value": "",
-                    "type": "unsignedint"
+                    "value": "118",
+                    "type": "signedint"
                 },
                 {
                     "name": "fixTime",
-                    "value": "",
+                    "value": "1756213208",
+                    "type": "signedint"
+                },
+                {
+                    "name": "port1Cfg",
+                    "value": "0",
+                    "type": "enum"
+                },
+                {
+                    "name": "port1Value",
+                    "value": "0",
                     "type": "unsignedint"
+                },
+                {
+                    "name": "port2Cfg",
+                    "value": "0",
+                    "type": "enum"
+                },
+                {
+                    "name": "port2Value",
+                    "value": "0",
+                    "type": "unsignedint"
+                },
+                {
+                    "name": "port3Cfg",
+                    "value": "0",
+                    "type": "enum"
+                },
+                {
+                    "name": "port3Value",
+                    "value": "0",
+                    "type": "unsignedint"
+                },
+                {
+                    "name": "port4Cfg",
+                    "value": "0",
+                    "type": "enum"
+                },
+                {
+                    "name": "port4Value",
+                    "value": "0",
+                    "type": "unsignedint"
+                },
+                {
+                    "name": "currentTemperature",
+                    "value": "33",
+                    "type": "signedint"
+                },
+                {
+                    "name": "inputPowerVoltage",
+                    "value": "24006",
+                    "type": "unsignedint"
+                },
+                {
+                    "name": "DTEConnected",
+                    "value": "False",
+                    "type": "boolean"
+                }
+            ]})
+    },
+    'eio': {
+        'exclude': False,
+        'codec': os.path.join(os.getcwd(), 'secrets/luaTerminals.idpmsg'),
+        'raw_payload': [
+            19, 3, 0, 8, 0, 0, 8, 0, 0, 8, 0, 0, 8, 0, 97, 10, 87, 111, 136
+        ],
+        'decoded': dict({
+            "name": "EIO",
+            "codecServiceId": 19,
+            "codecMessageId": 3,
+            "fields": [
+                {
+                    "name": "port1Cfg",
+                    "value": "0",
+                    "type": "enum"
+                },
+                {
+                    "name": "port1Value",
+                    "value": "0",
+                    "type": "unsignedint"
+                },
+                {
+                    "name": "port2Cfg",
+                    "value": "0",
+                    "type": "enum"
+                },
+                {
+                    "name": "port2Value",
+                    "value": "0",
+                    "type": "unsignedint"
+                },
+                {
+                    "name": "port3Cfg",
+                    "value": "0",
+                    "type": "enum"
+                },
+                {
+                    "name": "port3Value",
+                    "value": "0",
+                    "type": "unsignedint"
+                },
+                {
+                    "name": "port4Cfg",
+                    "value": "0",
+                    "type": "enum"
+                },
+                {
+                    "name": "port4Value",
+                    "value": "0",
+                    "type": "unsignedint"
+                },
+                {
+                    "name": "currentTemperature",
+                    "value": "33",
+                    "type": "signedint"
+                },
+                {
+                    "name": "inputPowerVoltage",
+                    "value": "23998",
+                    "type": "unsignedint"
+                },
+                {
+                    "name": "DTEConnected",
+                    "value": "False",
+                    "type": "boolean"
                 }
             ]})
     },
