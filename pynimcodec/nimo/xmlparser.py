@@ -22,6 +22,9 @@ def parse_xml_file(filename: str):
                        message.find('Name').text,
                        message.find('MIN').text)
             fields = message.find('Fields')
-            for field in fields.findall('Field'):
-                _log.debug('Field: %s (%s)', field.find('Name').text, field.get(f'{{{ns["xsi"]}}}type'))
+            try:
+                for field in fields.findall('Field'):
+                    _log.debug('Field: %s (%s)', field.find('Name').text, field.get(f'{{{ns["xsi"]}}}type'))
+            except:
+                _log.warning('No Fields in Message MIN: %s', message.find('MIN').text)
     return root
