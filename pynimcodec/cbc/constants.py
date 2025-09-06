@@ -1,23 +1,24 @@
 """Constants used for Compact Binary Codec."""
 
 from enum import Enum, EnumMeta
+from typing import Any
 
 
-class _MetaEnum(EnumMeta):
-    """Enum that provides a contains (`in`) method for its subclasses."""
-    def __contains__(cls, item) -> bool:
+class CbcEnumMeta(EnumMeta):
+    """EnumMeta that allows membership testing with values."""
+    def __contains__(cls, item: Any) -> bool:
         try:
             cls(item)
+            return True
         except ValueError:
             return False
-        return True
 
 
-class _CbcEnum(Enum, metaclass=_MetaEnum):
-    """Base Enum class of `MetaEnum` intended exclusively for subclassing."""
+class CbcEnum(Enum, metaclass=CbcEnumMeta):
+    """Base Enum class for Compact Binary Codec. Only for subclassing."""
 
 
-class FieldType(_CbcEnum):
+class FieldType(CbcEnum):
     """Field type mappings for Compact Binary Codec."""
     BOOL = 'bool'
     INT = 'int'
@@ -32,7 +33,7 @@ class FieldType(_CbcEnum):
     BITMASKARRAY = 'bitmaskarray'
 
 
-class MessageDirection(_CbcEnum):
+class MessageDirection(CbcEnum):
     """Direction type mappings for Compact Binary Codec."""
-    MO = 'UPLINK'   # Mobile-Originated
+    MO = 'UPLINK'     # Mobile-Originated
     MT = 'DOWNLINK'   # Mobile-Terminated
