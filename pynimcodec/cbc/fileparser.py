@@ -19,23 +19,22 @@ def import_json(filepath: str) -> Application:
     if not os.path.isfile(filepath):
         raise ValueError('Invalid file path.')
     with open(filepath) as f:
-        try:
-            codec_dict: dict = json.load(f)
-            if not all(k in codec_dict for k in required_keys):
-                raise ValueError(f'Missing required keys ({required_keys})')
-            message_list = codec_dict.get('messages')
-            if (not isinstance(message_list, list) or
-                not all(isinstance(msg, dict) for msg in message_list)):
-                raise ValueError('messages must be a list')
-            messages = Messages()
-            for message in message_list:
-                messages.append(create_message(message))
-            return Application(application=codec_dict.get('application'),
-                               version=codec_dict.get('version'),
-                               description=codec_dict.get('description'),
-                               messages=messages)
-        except Exception as exc:
-            _log.error(exc)
+        codec_dict: dict = json.load(f)
+        if not all(k in codec_dict for k in required_keys):
+            raise ValueError(f'Missing required keys ({required_keys})')
+        message_list = codec_dict.get('messages')
+        if (not isinstance(message_list, list) or
+            not all(isinstance(msg, dict) for msg in message_list)):
+            raise ValueError('messages must be a list')
+        messages = Messages()
+        for message in message_list:
+            messages.append(create_message(message))
+        return Application(
+            application=codec_dict.get('application'),
+            version=codec_dict.get('version'),
+            description=codec_dict.get('description'),
+            messages=messages,
+        )
 
 def export_json(filepath: str, messages: Messages, **kwargs) -> None:
     """Export a JSON CBC definition file.

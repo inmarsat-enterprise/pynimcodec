@@ -1,9 +1,10 @@
 """Base classes for Compact Binary Codec."""
 
-import warnings
-from typing import TypeVar
+import logging
+from typing import Optional, Type, TypeVar
 
-T = TypeVar('T')
+T = TypeVar('T', bound='CbcCodec')
+_log = logging.getLogger(__name__)
 
 
 class CbcCodec:
@@ -31,8 +32,8 @@ class CbcCodec:
         opt_kwargs: 'list[str]' = getattr(self, '_opt_kwargs') or []
         for k in kwargs:
             if k not in (req_kwargs + opt_kwargs):
-                warnings.warn(f'{self.__class__.__name__} {name}'
-                              f' unsupported kwarg: {k}')
+                _log.warning(f'{self.__class__.__name__} {name}'
+                             f' unsupported kwarg: {k}')
         self._name = None
         self.name = name
         self._description = None
@@ -66,7 +67,7 @@ class CbcCodec:
 
     @property
     def name(self) -> str:
-        return self._name
+        return self._name   # type: ignore
     
     @name.setter
     def name(self, value: str):
@@ -75,7 +76,7 @@ class CbcCodec:
         self._name = value
     
     @property
-    def description(self) -> str:
+    def description(self) -> str|None:
         return self._description
     
     @description.setter
@@ -86,7 +87,7 @@ class CbcCodec:
 
     def _attribute_equivalence(self,
                                other: object,
-                               exclude: "list[str]" = None) -> bool:
+                               exclude: Optional[list[str]] = None) -> bool:
         """Indicates attribute equivalence, with optional exceptions."""
         if not isinstance(other, self.__class__):
             return NotImplemented
@@ -110,7 +111,7 @@ class CodecList(list[T]):
         codec_class (class): The object type the list is comprised of.
 
     """
-    def __init__(self, codec_cls: T, *args) -> None:
+    def __init__(self, codec_cls: Type[T], *args) -> None:
         if not issubclass(codec_cls, CbcCodec):
             raise ValueError('Invalid codec class.')
         super().__init__(*args)
@@ -120,7 +121,7 @@ class CodecList(list[T]):
     def codec_class_name(self) -> str:
         return self._codec_class.__name__
     
-    def append(self, codec: T) -> bool:
+    def append(self, codec: T):
         """Append uniquely named codec to the end of the list.
 
         Args:
@@ -136,9 +137,8 @@ class CodecList(list[T]):
                 raise ValueError(f'Duplicate {self.codec_class_name}'
                                  f' name {codec.name} found')
         super().append(codec)
-        return True
 
-    def __getitem__(self, n: 'str|int') -> T:
+    def __getitem__(self, n: str|int) -> T:     # type: ignore
         """Retrieves an object by name or index.
         
         Args:
@@ -155,7 +155,7 @@ class CodecList(list[T]):
             raise ValueError(f'{self.codec_class_name} name {n} not found')
         return super().__getitem__(n)
 
-    def __setitem__(self, n: 'str|int', value):
+    def __setitem__(self, n: str|int, value):   # type: ignore
         if not isinstance(value, self._codec_class):
             raise ValueError(f'Invalid {self.codec_class_name}')
         if isinstance(n, str):
@@ -166,7 +166,7 @@ class CodecList(list[T]):
         else:
             super().__setitem__(n, value)
 
-    def remove(self, name: str) -> bool:
+    def remove(self, name: str):    # type: ignore
         """Remove the codec from the list by name.
         
         Args:
@@ -178,5 +178,3 @@ class CodecList(list[T]):
         for o in self:
             if getattr(o, 'name') == name:
                 super().remove(o)
-                return True
-        return False

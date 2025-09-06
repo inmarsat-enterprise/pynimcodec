@@ -1,5 +1,7 @@
 """Struct field class and methods."""
 
+from typing import Any
+
 from pynimcodec.utils import snake_case
 
 from ..constants import FieldType
@@ -31,18 +33,18 @@ class StructField(Field):
         return self._fields
     
     @fields.setter
-    def fields(self, fields: 'Fields|list[Field]'):
+    def fields(self, fields: Fields|list[Field]):
         if (not isinstance(fields, (Fields, list)) or
             not all(isinstance(x, Field) for x in fields)):
             raise ValueError('Invalid list of fields')
         self._fields = Fields(fields)
 
-    def decode(self, buffer: bytes, offset: int) -> 'tuple[int|float, int]':
+    def decode(self, buffer: bytes, offset: int) -> tuple[dict[str, Any], int]:
         """Extracts the struct value from a buffer."""
         return decode(self, buffer, offset)
     
     def encode(self,
-               value: 'int|float',
+               value: dict[str, Any],
                buffer: bytearray,
                offset: int,
                ) -> tuple[bytearray, int]:
@@ -55,7 +57,7 @@ def create(**kwargs) -> StructField:
     return StructField(**{snake_case(k): v for k, v in kwargs.items()})
 
 
-def decode(field: Field, buffer: bytes, offset: int) -> 'tuple[dict, int]':
+def decode(field: Field, buffer: bytes, offset: int) -> tuple[dict[str, Any], int]:
     """Decode a struct field value from a buffer at a bit offset.
     
     Args:
@@ -77,10 +79,10 @@ def decode(field: Field, buffer: bytes, offset: int) -> 'tuple[dict, int]':
 
 
 def encode(field: StructField,
-           value: dict,
+           value: dict[str, Any],
            buffer: bytearray,
            offset: int,
-           ) -> 'tuple[bytearray, int]':
+           ) -> tuple[bytearray, int]:
     """Append a struct field value to a buffer at a bit offset.
     
     Args:

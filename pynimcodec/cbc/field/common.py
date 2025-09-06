@@ -55,7 +55,7 @@ def create_field(obj: dict) -> Field:
 def decode_field(field: Field,
                  buffer: bytes,
                  offset: int,
-                 ) -> 'tuple[dict, int]':
+                 ) -> tuple[dict, int]:
     """Decode a field to a dictionary."""
     if not isinstance(field, Field):
         raise ValueError('Invalid field.')
@@ -79,7 +79,7 @@ def encode_field(field: Field,
                  value: Any,
                  buffer: bytearray,
                  offset: int,
-                 ) -> 'tuple[bytearray, int]':
+                 ) -> tuple[bytearray, int]:
     """Append an encoded field value to a buffer at a bit offset."""
     if not isinstance(field, Field):
         raise ValueError('Invalid field.')

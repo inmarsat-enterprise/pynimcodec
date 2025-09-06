@@ -1,7 +1,7 @@
 """Floating point field class and methods."""
 
+import logging
 import struct
-import warnings
 
 from pynimcodec.bitman import BitArray, append_bits_to_buffer, extract_from_buffer
 from pynimcodec.utils import snake_case
@@ -10,6 +10,7 @@ from ..constants import FieldType
 from .base_field import Field
 
 FIELD_TYPE = FieldType.FLOAT
+_log = logging.getLogger(__name__)
 
 
 class FloatField(Field):
@@ -56,17 +57,17 @@ class FloatField(Field):
         if not isinstance(value, int) or value < 1:
             raise ValueError('Invalid precision must be int > 0')
         if self.size == 32 and value > 7:
-            warnings.warn('Precision maximum 7 for 32-bit float')
+            _log.warning('Precision maximum 7 for 32-bit float')
         elif self.size == 64 and value < 8:
-            warnings.warn('64-bit double not required for low precision')
+            _log.warning('64-bit double not required for low precision')
         self._precision = value
     
-    def decode(self, buffer: bytes, offset: int) -> 'tuple[int|float, int]':
+    def decode(self, buffer: bytes, offset: int) -> tuple[int|float, int]:
         """Extracts the float value from a buffer."""
         return decode(self, buffer, offset)
     
     def encode(self,
-               value: 'int|float',
+               value: int|float,
                buffer: bytearray,
                offset: int,
                ) -> tuple[bytearray, int]:
@@ -79,7 +80,7 @@ def create(**kwargs) -> FloatField:
     return FloatField(**{snake_case(k): v for k, v in kwargs.items()})
 
 
-def decode(field: Field, buffer: bytes, offset: int) -> 'tuple[float, int]':
+def decode(field: Field, buffer: bytes, offset: int) -> tuple[float, int]:
     """Decode a floating point field value from a buffer at a bit offset.
     
     Args:
@@ -98,7 +99,7 @@ def decode(field: Field, buffer: bytes, offset: int) -> 'tuple[float, int]':
         raise ValueError('Invalid FloatField definition.')
     x = extract_from_buffer(buffer, offset, field.size, as_buffer=True)
     s_fmt = 'f' if field.size == 32 else 'd'
-    value = round(struct.unpack(s_fmt, x)[0], field.precision)
+    value = round(struct.unpack(s_fmt, x)[0], field.precision) # type: ignore
     return ( value, offset + field.size )
 
 
@@ -106,7 +107,7 @@ def encode(field: FloatField,
            value: float,
            buffer: bytearray,
            offset: int,
-           ) -> 'tuple[bytearray, int]':
+           ) -> tuple[bytearray, int]:
     """Append a floating point field value to a buffer at a bit offset.
     
     Args:

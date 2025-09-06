@@ -1,5 +1,7 @@
 """Signed integer field class and methods."""
 
+from typing import Optional
+
 from pynimcodec.bitman import BitArray, append_bits_to_buffer, extract_from_buffer
 from pynimcodec.utils import snake_case
 
@@ -30,10 +32,10 @@ class IntField(Field):
         self._add_kwargs(['size'], ['encalc', 'decalc', 'min', 'max'])
         super().__init__(name, **kwargs)
         self._size: int = 0
-        self._encalc: 'str|None' = None
-        self._decalc: 'str|None' = None
-        self._min: 'int|None' = None
-        self._max: 'int|None' = None
+        self._encalc: Optional[str] = None
+        self._decalc: Optional[str] = None
+        self._min: Optional[int] = None
+        self._max: Optional[int] = None
         self.size = kwargs.pop('size')
         self.encalc = kwargs.pop('encalc', None)
         self.decalc = kwargs.pop('decalc', None)
@@ -54,11 +56,11 @@ class IntField(Field):
         self._size = value
     
     @property
-    def encalc(self) -> 'str|None':
+    def encalc(self) -> str|None:
         return self._encalc
     
     @encalc.setter
-    def encalc(self, expr: 'str|None'):
+    def encalc(self, expr: str|None):
         if expr is None or expr == '':
             self._encalc = None
         else:
@@ -69,11 +71,11 @@ class IntField(Field):
                 raise ValueError('Invalid expression.') from exc
     
     @property
-    def decalc(self) -> 'str|None':
+    def decalc(self) -> str|None:
         return self._decalc
     
     @decalc.setter
-    def decalc(self, expr: 'str|None'):
+    def decalc(self, expr: str|None):
         if expr is None or expr == '':
             self._decalc = None
         else:
@@ -92,11 +94,11 @@ class IntField(Field):
         return -int(2**self.size / 2)
     
     @property
-    def min(self) -> 'int|None':
+    def min(self) -> int|None:
         return self._min
     
     @min.setter
-    def min(self, value: 'int|None'):
+    def min(self, value: int|None):
         if value is not None:
             if (not isinstance(value, int) or
                 value < self._min_value or
@@ -108,11 +110,11 @@ class IntField(Field):
         self._min = value
     
     @property
-    def max(self) -> 'int|None':
+    def max(self) -> int|None:
         return self._max
     
     @max.setter
-    def max(self, value: 'int|None'):
+    def max(self, value: int|None):
         if value is not None:
             if (not isinstance(value, int) or
                 value < self._min_value or
@@ -123,12 +125,12 @@ class IntField(Field):
                 raise ValueError('max must be above min')
         self._max = value
         
-    def decode(self, buffer: bytes, offset: int) -> 'tuple[int|float, int]':
+    def decode(self, buffer: bytes, offset: int) -> tuple[int|float, int]:
         """Extracts the signed integer value from a buffer."""
         return decode(self, buffer, offset)
     
     def encode(self,
-               value: 'int|float',
+               value: int|float,
                buffer: bytearray,
                offset: int,
                ) -> tuple[bytearray, int]:
@@ -141,7 +143,7 @@ def create(**kwargs) -> IntField:
     return IntField(**{snake_case(k): v for k, v in kwargs.items()})
 
 
-def decode(field: Field, buffer: bytes, offset: int) -> 'tuple[int|float, int]':
+def decode(field: Field, buffer: bytes, offset: int) -> tuple[int|float, int]:
     """Decode a signed integer field value from a buffer at a bit offset.
     
     If the field has `decalc` attribute populated it will apply the math
@@ -161,17 +163,16 @@ def decode(field: Field, buffer: bytes, offset: int) -> 'tuple[int|float, int]':
     """
     if not isinstance(field, IntField):
         raise ValueError('Invalid IntField definition.')
-    value = extract_from_buffer(buffer, offset, field.size, signed=True)
-    if field.decalc:
-        value = calc_decode(field.decalc, value)
+    enc: int = extract_from_buffer(buffer, offset, field.size, signed=True) # type: ignore
+    value = calc_decode(field.decalc, enc) if field.decalc else enc
     return ( value, offset + field.size )
 
 
 def encode(field: IntField,
-           value: 'int|float',
+           value: int|float,
            buffer: bytearray,
            offset: int,
-           ) -> 'tuple[bytearray, int]':
+           ) -> tuple[bytearray, int]:
     """Append a signed integer field value to a buffer at a bit offset.
     
     Args:

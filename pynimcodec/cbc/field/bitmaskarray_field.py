@@ -37,7 +37,7 @@ class BitmaskArrayField(Field):
         self._add_kwargs(['size', 'enum', 'fields'], [])
         super().__init__(name, **kwargs)
         self._size: int = 0
-        self._enum: 'dict[str, str]' = {}
+        self._enum: dict[str, str] = {}
         self._fields: Fields = Fields()
         self.size = kwargs.pop('size')
         self.enum = kwargs.pop('enum')
@@ -54,11 +54,11 @@ class BitmaskArrayField(Field):
         self._size = value
     
     @property
-    def enum(self) -> 'dict[str, str]':
+    def enum(self) -> dict[str, str]:
         return self._enum
     
     @enum.setter
-    def enum(self, keys_values: 'dict[str, str]'):
+    def enum(self, keys_values: dict[str|int, str]):
         self._enum = valid_enum(self.size, keys_values, bitmask=True)
     
     @property
@@ -70,18 +70,18 @@ class BitmaskArrayField(Field):
         return self._fields
     
     @fields.setter
-    def fields(self, fields: 'list[Field]'):
-        if (not isinstance(fields, list) or
+    def fields(self, fields: Fields|list[Field]):
+        if (not isinstance(fields, (Fields, list)) or
             not all(isinstance(x, Field) for x in fields)):
             raise ValueError('Invalid list of fields')
-        self._fields = fields
+        self._fields = Fields(fields)
     
-    def decode(self, buffer: bytes, offset: int) -> 'tuple[int|float, int]':
+    def decode(self, buffer: bytes, offset: int) -> tuple[dict[str, list], int]:
         """Extracts the array value from a buffer."""
         return decode(self, buffer, offset)
     
     def encode(self,
-               value: 'int|float',
+               value: dict[str, list],
                buffer: bytearray,
                offset: int,
                ) -> tuple[bytearray, int]:
@@ -94,7 +94,7 @@ def create(**kwargs) -> BitmaskArrayField:
     return BitmaskArrayField(**{snake_case(k): v for k, v in kwargs.items()})
 
 
-def decode(field: Field, buffer: bytes, offset: int) -> 'tuple[dict, int]':
+def decode(field: Field, buffer: bytes, offset: int) -> tuple[dict[str, list], int]:
     """Decode an array field value from a buffer at a bit offset.
     
     Args:
@@ -111,7 +111,7 @@ def decode(field: Field, buffer: bytes, offset: int) -> 'tuple[dict, int]':
     """
     if not isinstance(field, BitmaskArrayField):
         raise ValueError('Invalid BitmaskArrayField definition.')
-    bitmask = extract_from_buffer(buffer, offset, field.size)
+    bitmask: int = extract_from_buffer(buffer, offset, field.size) # type: ignore
     offset += field.size
     value_keys = []
     bits = BitArray.from_int(bitmask)
@@ -129,17 +129,17 @@ def decode(field: Field, buffer: bytes, offset: int) -> 'tuple[dict, int]':
                     continue
             if len(field.fields) == 1:
                 decoded, offset = col.decode(buffer, offset)
-            else:
+            elif isinstance(decoded, dict):
                 decoded[col.name], offset = col.decode(buffer, offset)
         value[value_keys[row]].append(decoded)
     return ( value, offset )
 
 
 def encode(field: BitmaskArrayField,
-           value: 'dict[str, list]',
+           value: dict[str, list],
            buffer: bytearray,
            offset: int,
-           ) -> 'tuple[bytearray, int]':
+           ) -> tuple[bytearray, int]:
     """Append an array field values to a buffer at a bit offset.
     
     Args:
@@ -173,7 +173,7 @@ def encode(field: BitmaskArrayField,
             for col in field.fields:
                 if col.optional:
                     present = 1 if not isinstance(row, dict) or col.name in row else 0
-                    buffer = append_bits_to_buffer([present], buffer, offset)
+                    buffer = append_bits_to_buffer([present], buffer, offset) # type: ignore
                     offset += 1
                     if not present:
                         continue

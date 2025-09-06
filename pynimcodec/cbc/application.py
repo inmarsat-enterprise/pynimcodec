@@ -1,6 +1,7 @@
 """Application class provides a file-level container for a Messages codec."""
 
 from enum import Enum
+from typing import Any, Optional
 
 import aiocoap
 
@@ -25,8 +26,8 @@ class Application:
         """
         self._application: str = 'cbcApplication'
         self._version: str = '1.0'
-        self._description: 'str|None' = None
-        self._messages: Messages = None
+        self._description: Optional[str] = None
+        self._messages: Messages = Messages()
         self.application = kwargs.pop('application', self._application)
         self.version = kwargs.pop('version', self._version)
         self.description = kwargs.pop('description', None)
@@ -67,7 +68,7 @@ class Application:
         return self._description
     
     @description.setter
-    def description(self, value: str):
+    def description(self, value: str|None):
         if not isinstance(value, str) and value is not None:
             raise ValueError('Invalid description must be string or None.')
         if value == '':
@@ -107,7 +108,7 @@ class Application:
         reordered.update(remaining)
         return reordered
     
-    def encode(self, content: dict, **kwargs) -> 'bytes|aiocoap.Message':
+    def encode(self, content: dict, **kwargs) -> bytes|aiocoap.Message:
         """Encode the message content.
         
         Args:
@@ -118,13 +119,13 @@ class Application:
         if (not isinstance(content, dict) or
             not all(k in content for k in ['name', 'value'])):
             raise ValueError('Invalid content must be dict with name, value')
-        name = content.get('name')
+        name = content.get('name', '')
         message_codec = self.messages[name]
         if 'coap' not in kwargs or kwargs.get('coap') is False:
             kwargs['nim'] = True
         return message_codec.encode(content, **kwargs)
     
-    def decode(self, buffer: bytes, direction: MessageDirection, **kwargs) -> dict:
+    def decode(self, buffer: bytes, direction: MessageDirection, **kwargs) -> dict[str, Any]:
         """Decode a message buffer into a dictionary value.
         
         The message buffer should include overhead either 2-bytes message_key

@@ -1,8 +1,8 @@
 """Base class for all Fields."""
 
-import warnings
+import logging
 from enum import Enum
-from typing import Any
+from typing import Any, Optional
 
 from pynimcodec.bitman import append_bits_to_buffer, extract_from_buffer
 from pynimcodec.cbc.codec.base_codec import CbcCodec
@@ -10,6 +10,8 @@ from pynimcodec.utils import camel_case, snake_case
 
 from ..codec.base_codec import CodecList
 from ..constants import FieldType
+
+_log = logging.getLogger(__name__)
 
 
 class Field(CbcCodec):
@@ -24,20 +26,23 @@ class Field(CbcCodec):
     def __init__(self, name: str, **kwargs) -> None:
         self._add_kwargs(['type'], ['optional'])
         super().__init__(name, **kwargs)
-        self._type: FieldType = None
+        self._type: Optional[FieldType] = None
         self._optional: bool = False
         self.type = kwargs.pop('type')
         self.optional = kwargs.pop('optional', False)
     
     @property
     def type(self) -> FieldType:
+        assert isinstance(self._type, FieldType)
         return self._type
     
     @type.setter
-    def type(self, field_type: 'FieldType|str'):
+    def type(self, field_type: FieldType|str):
         if (not isinstance(field_type, (FieldType, str)) or
             field_type not in FieldType):
             raise ValueError('Invalid field_type.')
+        if isinstance(field_type, str):
+            field_type = FieldType[field_type]
         self._type = field_type
     
     @property
@@ -129,7 +134,7 @@ class Fields(CodecList[Field]):
 def decode_fields(codec: CbcCodec,
                   buffer: bytes,
                   offset: int,
-                  ) -> 'tuple[list[dict], int]':
+                  ) -> tuple[dict[str, Any], int]:
     """Decodes field values from a buffer for a codec with fields.
     
     Args:
@@ -138,7 +143,7 @@ def decode_fields(codec: CbcCodec,
         offset (int): The bit offset in the buffer to decode from.
     
     Returns:
-        tuple(list, int): The decoded fields list and offet resulting.
+        tuple(dict, int): The decoded fields list and offet resulting.
     """
     fields: Fields = getattr(codec, 'fields')
     if not fields:
@@ -182,16 +187,16 @@ def encode_fields(content: dict,
         raise ValueError('Codec has no fields attribute.')
     for k in content:
         if not any(field.name == k for field in fields):
-            warnings.warn(f'No field {k} found in codec {codec.name}')
+            _log.warning('No field %s found in codec %s', k, codec.name)
     for field in fields:
         value = content[field.name] if field.name in content else None
         if value is not None:
             if field.optional is True:
-                buffer = append_bits_to_buffer([1], buffer, offset)
+                buffer = append_bits_to_buffer([1], buffer, offset) # type: ignore
                 offset += 1
             buffer, offset = field.encode(value, buffer, offset)
         elif field.optional is True:
-            buffer = append_bits_to_buffer([0], buffer, offset)
+            buffer = append_bits_to_buffer([0], buffer, offset) # type: ignore
             offset += 1
         else:
             raise ValueError(f'Missing required field {field.name}')

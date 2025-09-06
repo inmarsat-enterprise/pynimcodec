@@ -3,13 +3,13 @@
 from pynimcodec.bitman import BitArray, append_bits_to_buffer, extract_from_buffer
 
 
-def decode_field_length(buffer: bytes, offset: int) -> 'tuple[int, int]':
+def decode_field_length(buffer: bytes, offset: int) -> tuple[int, int]:
     """Decode the length (L) of a variable-length field."""
     L_flag = extract_from_buffer(buffer, offset, 1)
     offset += 1
     L_len = 15 if L_flag else 7
     return (
-        extract_from_buffer(buffer, offset, L_len),
+        extract_from_buffer(buffer, offset, L_len), # type: ignore
         offset + L_len,
     )
 
@@ -17,7 +17,7 @@ def decode_field_length(buffer: bytes, offset: int) -> 'tuple[int, int]':
 def encode_field_length(size: int,
                         buffer: bytearray,
                         offset: int,
-                        ) -> 'tuple[bytearray, int]':
+                        ) -> tuple[bytearray, int]:
     """Encode the length (L) of a variable-length field."""
     bits = BitArray.from_int(size, 8 if size < 128 else 16)
     if size > 127:

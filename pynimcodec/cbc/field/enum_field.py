@@ -28,7 +28,7 @@ class EnumField(Field):
         self._add_kwargs(['size', 'enum'], [])
         super().__init__(name, **kwargs)
         self._size: int = 0
-        self._enum: 'dict[str, str]' = {}
+        self._enum: dict[str, str] = {}
         self.size = kwargs.pop('size')
         self.enum = kwargs.pop('enum')
     
@@ -47,19 +47,19 @@ class EnumField(Field):
         return 2**self.size - 1
     
     @property
-    def enum(self) -> 'dict[str, str]':
+    def enum(self) -> dict[str, str]:
         return self._enum
     
     @enum.setter
-    def enum(self, keys_values: 'dict[str, str]'):
+    def enum(self, keys_values: dict[str|int, str]):
         self._enum = valid_enum(self.size, keys_values)
     
-    def decode(self, buffer: bytes, offset: int) -> 'tuple[int|float, int]':
+    def decode(self, buffer: bytes, offset: int) -> tuple[str, int]:
         """Extracts the enum value from a buffer."""
         return decode(self, buffer, offset)
     
     def encode(self,
-               value: 'int|float',
+               value: str|int,
                buffer: bytearray,
                offset: int,
                ) -> tuple[bytearray, int]:
@@ -72,7 +72,7 @@ def create(**kwargs) -> EnumField:
     return EnumField(**{snake_case(k): v for k, v in kwargs.items()})
 
 
-def decode(field: Field, buffer: bytes, offset: int) -> 'tuple[str, int]':
+def decode(field: Field, buffer: bytes, offset: int) -> tuple[str, int]:
     """Decode an enumerated field value from a buffer at a bit offset.
     
     Args:
@@ -96,10 +96,10 @@ def decode(field: Field, buffer: bytes, offset: int) -> 'tuple[str, int]':
 
 
 def encode(field: EnumField,
-           value: 'str|int',
+           value: str|int,
            buffer: bytearray,
            offset: int,
-           ) -> 'tuple[bytearray, int]':
+           ) -> tuple[bytearray, int]:
     """Append an enumerated integer field value to a buffer at a bit offset.
     
     Args:
@@ -121,7 +121,8 @@ def encode(field: EnumField,
         raise ValueError(f'Invalid {field.name} value.')
     if isinstance(value, int):
         key = f'{value}'
-    elif isinstance(value, str):
+    else:
+        key = None
         if value not in field.enum.values():
             raise ValueError(f'Invalid value {value} not in {field.name} enum.')
         for k, v in field.enum.items():

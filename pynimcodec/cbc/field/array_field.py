@@ -1,5 +1,7 @@
 """Array field class and methods."""
 
+from typing import Any
+
 from pynimcodec.bitman import (
     append_bits_to_buffer,
     append_bytes_to_buffer,
@@ -59,22 +61,22 @@ class ArrayField(Field):
         self._fixed = value
     
     @property
-    def fields(self) -> 'list[Field]':
+    def fields(self) -> Fields:
         return self._fields
     
     @fields.setter
-    def fields(self, fields: 'list[Field]'):
-        if (not isinstance(fields, list) or
+    def fields(self, fields: Fields|list[Field]):
+        if (not isinstance(fields, (Fields, list)) or
             not all(isinstance(x, Field) for x in fields)):
             raise ValueError('Invalid list of fields')
-        self._fields = fields
+        self._fields = Fields(fields)
     
-    def decode(self, buffer: bytes, offset: int) -> 'tuple[int|float, int]':
+    def decode(self, buffer: bytes, offset: int) -> tuple[list[Any], int]:
         """Extracts the array value from a buffer."""
         return decode(self, buffer, offset)
     
     def encode(self,
-               value: 'int|float',
+               value: list[Any],
                buffer: bytearray,
                offset: int,
                ) -> tuple[bytearray, int]:
@@ -87,7 +89,7 @@ def create(**kwargs) -> ArrayField:
     return ArrayField(**{snake_case(k): v for k, v in kwargs.items()})
 
 
-def decode(field: Field, buffer: bytes, offset: int) -> 'tuple[list, int]':
+def decode(field: Field, buffer: bytes, offset: int) -> tuple[list[Any], int]:
     """Decode an array field value from a buffer at a bit offset.
     
     Args:
@@ -119,17 +121,17 @@ def decode(field: Field, buffer: bytes, offset: int) -> 'tuple[list, int]':
                     continue
             if len(field.fields) == 1:
                 decoded, offset = col.decode(buffer, offset)
-            else:
+            elif isinstance(decoded, dict):
                 decoded[col.name], offset = col.decode(buffer, offset)
         value.append(decoded)
     return ( value, offset )
 
 
 def encode(field: ArrayField,
-           value: list,
+           value: list[Any],
            buffer: bytearray,
            offset: int,
-           ) -> 'tuple[bytearray, int]':
+           ) -> tuple[bytearray, int]:
     """Append an array field values to a buffer at a bit offset.
     
     Args:
@@ -156,7 +158,9 @@ def encode(field: ArrayField,
         for col in field.fields:
             if col.optional:
                 present = 1 if not isinstance(row, dict) or col.name in row else 0
-                tmp_buffer = append_bits_to_buffer([present], tmp_buffer, tmp_offset)
+                tmp_buffer = append_bits_to_buffer([present],   # type: ignore
+                                                   tmp_buffer,
+                                                   tmp_offset)
                 tmp_offset += 1
                 if not present:
                     continue

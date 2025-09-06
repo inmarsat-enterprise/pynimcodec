@@ -2,8 +2,8 @@
 
 
 def valid_enum(size: int,
-               keys_values: 'dict[str|int, str]',
-               bitmask: bool = False) -> 'dict[str, str]':
+               keys_values: dict[str|int, str],
+               bitmask: bool = False) -> dict[str, str]:
     """Validate an enum definition to have numeric keys and string values.
     
     Args:

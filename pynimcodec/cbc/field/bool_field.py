@@ -23,12 +23,12 @@ class BoolField(Field):
         kwargs['type'] = FIELD_TYPE
         super().__init__(name, **kwargs)
     
-    def decode(self, buffer: bytes, offset: int) -> 'tuple[int|float, int]':
+    def decode(self, buffer: bytes, offset: int) -> tuple[bool, int]:
         """Extracts the boolean value from a buffer."""
         return decode(self, buffer, offset)
     
     def encode(self,
-               value: 'int|float',
+               value: bool|int,
                buffer: bytearray,
                offset: int,
                ) -> tuple[bytearray, int]:
@@ -41,7 +41,7 @@ def create(**kwargs) -> BoolField:
     return BoolField(**{snake_case(k): v for k, v in kwargs.items()})
 
 
-def decode(field: Field, buffer: bytes, offset: int) -> 'tuple[int|float, int]':
+def decode(field: Field, buffer: bytes, offset: int) -> tuple[bool, int]:
     """Decode a boolean field value from a buffer at a bit offset.
     
     Args:
@@ -63,10 +63,10 @@ def decode(field: Field, buffer: bytes, offset: int) -> 'tuple[int|float, int]':
 
 
 def encode(field: BoolField,
-           value: bool,
+           value: bool|int,
            buffer: bytearray,
            offset: int,
-           ) -> 'tuple[bytearray, int]':
+           ) -> tuple[bytearray, int]:
     """Append a boolean field value to a buffer at a bit offset.
     
     Args:
@@ -85,5 +85,8 @@ def encode(field: BoolField,
     if not isinstance(field, BoolField):
         raise ValueError('Invalid BoolField definition.')
     if not isinstance(value, bool):
-        raise ValueError(f'Invalid {field.name} boolean value.')
-    return ( append_bits_to_buffer([int(value)], buffer, offset), offset + 1 )
+        if value in [0, 1]:
+            value = bool(value)
+        else:
+            raise ValueError(f'Invalid {field.name} boolean value.')
+    return ( append_bits_to_buffer([int(value)], buffer, offset), offset + 1 ) # type: ignore

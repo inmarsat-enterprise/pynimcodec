@@ -51,12 +51,12 @@ class StringField(Field):
             raise ValueError('Invalid value for fixed.')
         self._fixed = value
     
-    def decode(self, buffer: bytes, offset: int) -> 'tuple[int|float, int]':
+    def decode(self, buffer: bytes, offset: int) -> tuple[str, int]:
         """Extracts the string value from a buffer."""
         return decode(self, buffer, offset)
     
     def encode(self,
-               value: 'int|float',
+               value: str,
                buffer: bytearray,
                offset: int,
                ) -> tuple[bytearray, int]:
@@ -69,7 +69,7 @@ def create(**kwargs) -> StringField:
     return StringField(**{snake_case(k): v for k, v in kwargs.items()})
 
 
-def decode(field: Field, buffer: bytes, offset: int) -> 'tuple[str, int]':
+def decode(field: Field, buffer: bytes, offset: int) -> tuple[str, int]:
     """Decode a string field value from a buffer at a bit offset.
     
     Args:
@@ -90,15 +90,15 @@ def decode(field: Field, buffer: bytes, offset: int) -> 'tuple[str, int]':
         length, offset = decode_field_length(buffer, offset)
     else:
         length = field.size
-    value = extract_from_buffer(buffer, offset, length * 8, as_buffer=True).decode()
-    return ( value, offset + length * 8 )
+    value: bytes = extract_from_buffer(buffer, offset, length * 8, as_buffer=True) # type: ignore
+    return ( value.decode(), offset + length * 8 )
 
 
 def encode(field: StringField,
            value: str,
            buffer: bytearray,
            offset: int,
-           ) -> 'tuple[bytearray, int]':
+           ) -> tuple[bytearray, int]:
     """Append a string field value to a buffer at a bit offset.
     
     Args:

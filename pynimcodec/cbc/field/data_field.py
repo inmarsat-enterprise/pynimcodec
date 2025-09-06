@@ -1,7 +1,6 @@
 """Data field class and methods."""
 
 import base64
-import binascii
 
 from pynimcodec.bitman import append_bytes_to_buffer, extract_from_buffer
 from pynimcodec.utils import snake_case
@@ -54,12 +53,12 @@ class DataField(Field):
             raise ValueError('Invalid value for fixed.')
         self._fixed = value
     
-    def decode(self, buffer: bytes, offset: int) -> 'tuple[int|float, int]':
+    def decode(self, buffer: bytes, offset: int) -> tuple[str, int]:
         """Extracts the data buffer from a buffer."""
         return decode(self, buffer, offset)
     
     def encode(self,
-               value: 'int|float',
+               value: bytes|bytearray,
                buffer: bytearray,
                offset: int,
                ) -> tuple[bytearray, int]:
@@ -82,7 +81,7 @@ def _is_valid_base64(candidate: str) -> bool:
         return False
 
 
-def decode(field: Field, buffer: bytes, offset: int) -> 'tuple[bytes, int]':
+def decode(field: Field, buffer: bytes, offset: int) -> tuple[str, int]:
     """Decode a data field value from a buffer at a bit offset.
     
     Args:
@@ -91,7 +90,7 @@ def decode(field: Field, buffer: bytes, offset: int) -> 'tuple[bytes, int]':
         offset (int): The bit offset to extract from.
     
     Returns:
-        tuple(bytes, int): The decoded value and the offset of the next
+        tuple(str, int): The base64 string value and the offset of the next
             field in the buffer.
     
     Raises:
@@ -103,16 +102,16 @@ def decode(field: Field, buffer: bytes, offset: int) -> 'tuple[bytes, int]':
         length, offset = decode_field_length(buffer, offset)
     else:
         length = field.size
-    raw_bytes = extract_from_buffer(buffer, offset, length * 8, as_buffer=True)
-    value = base64.b64encode(raw_bytes).decode('utf-8')
+    raw: bytes = extract_from_buffer(buffer, offset, length * 8, as_buffer=True) # type: ignore
+    value = base64.b64encode(raw).decode('utf-8')
     return ( value, offset + length * 8 )
 
 
 def encode(field: DataField,
-           value: bytes,
+           value: bytes|str,
            buffer: bytearray,
            offset: int,
-           ) -> 'tuple[bytearray, int]':
+           ) -> tuple[bytearray, int]:
     """Append a data field value to a buffer at a bit offset.
     
     Args:
@@ -130,7 +129,9 @@ def encode(field: DataField,
     """
     if not isinstance(field, DataField):
         raise ValueError('Invalid DataField definition.')
-    if _is_valid_base64(value):
+    if isinstance(value, str):
+        if not _is_valid_base64(value):
+            raise ValueError('Invalid base64 string')
         padding = '=' * (-len(value) % 4)
         value = base64.b64decode(value + padding, validate=True)
     if not isinstance(value, bytes):

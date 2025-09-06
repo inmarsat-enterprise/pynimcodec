@@ -28,7 +28,7 @@ class BitmaskField(Field):
         self._add_kwargs(['size', 'enum'], [])
         super().__init__(name, **kwargs)
         self._size: int = 0
-        self._enum: 'dict[str, str]' = {}
+        self._enum: dict[str, str] = {}
         self.size = kwargs.pop('size')
         self.enum = kwargs.pop('enum')
     
@@ -43,23 +43,23 @@ class BitmaskField(Field):
         self._size = value
     
     @property
-    def enum(self) -> 'dict[str, str]':
+    def enum(self) -> dict[str, str]:
         return self._enum
     
     @enum.setter
-    def enum(self, keys_values: 'dict[str, str]'):
+    def enum(self, keys_values: dict[str|int, str]):
         self._enum = valid_enum(self.size, keys_values, bitmask=True)
     
     @property
     def _max_value(self) -> int:
         return 2**self.size - 1
     
-    def decode(self, buffer: bytes, offset: int) -> 'tuple[int|float, int]':
+    def decode(self, buffer: bytes, offset: int) -> tuple[list[str], int]:
         """Extracts the bitmask value from a buffer."""
         return decode(self, buffer, offset)
     
     def encode(self,
-               value: 'int|float',
+               value: list[str]|int,
                buffer: bytearray,
                offset: int,
                ) -> tuple[bytearray, int]:
@@ -72,7 +72,7 @@ def create(**kwargs) -> BitmaskField:
     return BitmaskField(**{snake_case(k): v for k, v in kwargs.items()})
 
 
-def decode(field: Field, buffer: bytes, offset: int) -> 'tuple[list[str], int]':
+def decode(field: Field, buffer: bytes, offset: int) -> tuple[list[str], int]:
     """Decode a bitmask field value from a buffer at a bit offset.
     
     Args:
@@ -89,7 +89,7 @@ def decode(field: Field, buffer: bytes, offset: int) -> 'tuple[list[str], int]':
     """
     if not isinstance(field, BitmaskField):
         raise ValueError('Invalid BitmaskField definition.')
-    bits = BitArray.from_int(extract_from_buffer(buffer, offset, field.size))
+    bits = BitArray.from_int(extract_from_buffer(buffer, offset, field.size)) # type: ignore
     value = []
     for i, bit in enumerate(reversed(bits)):
         if bit:
@@ -98,10 +98,10 @@ def decode(field: Field, buffer: bytes, offset: int) -> 'tuple[list[str], int]':
 
 
 def encode(field: BitmaskField,
-           value: 'list[str]|int',
+           value: list[str]|int,
            buffer: bytearray,
            offset: int,
-           ) -> 'tuple[bytearray, int]':
+           ) -> tuple[bytearray, int]:
     """Append a bitmask field value to a buffer at a bit offset.
     
     Args:
@@ -134,6 +134,7 @@ def encode(field: BitmaskField,
                     value_int += 2**int(k)
                     break   # from enum iteration
         value = value_int
+    assert isinstance(value, int)
     if value < 0 or value > field._max_value:
         raise ValueError(f'Invalid {field.name} value must be in range 0..{field._max_value}')
     bits = BitArray.from_int(value, field.size)

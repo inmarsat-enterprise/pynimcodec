@@ -35,7 +35,7 @@ def eval_(node):
             func = allowed_functions[node.func.id]
             args = [eval_(arg) for arg in node.args]
             return func(*args)
-        raise ValueError(f'Unsafe function: {node.func.id}')
+        raise ValueError(f'Unsafe function: {node.func}')
     raise TypeError(node)
 
 
@@ -50,8 +50,8 @@ def is_valid_expr(expr: str) -> bool:
         return False
 
 
-def calc_decode(decalc: str, encoded: int):
-    """"""
+def calc_decode(decalc: str, encoded: int) -> float|int:
+    """Decodes an integer based on an expression."""
     if not isinstance(encoded, int):
         raise ValueError('Invalid encoded integer')
     if decalc == '':
@@ -59,15 +59,21 @@ def calc_decode(decalc: str, encoded: int):
     if not isinstance(decalc, str) or 'v' not in decalc:
         raise ValueError('Invalid decalc statement')
     expr = decalc.replace('v', f'{encoded}')
-    return eval_(ast.parse(expr, mode='eval').body)
+    decoded = eval_(ast.parse(expr, mode='eval').body)
+    if isinstance(decoded, bool):
+        return bool(decoded)
+    elif isinstance(decoded, (float, int)):
+        return decoded
+    else:
+        raise ValueError(f'Unexpected result: {decoded}')
 
 
-def calc_encode(encalc: str, decoded: 'int|float'):
-    """"""
+def calc_encode(encalc: str, decoded: int|float) -> int:
+    """Encodes a value to an integer based on an expression."""
     if not isinstance(decoded, (int, float)):
         raise ValueError('Invalid decoded number')
     if encalc == '':
-        return decoded
+        return int(decoded)
     if not isinstance(encalc, str) or 'v' not in encalc:
         raise ValueError('Invalid decalc statement')
     expr = encalc.replace('v', f'{decoded}')

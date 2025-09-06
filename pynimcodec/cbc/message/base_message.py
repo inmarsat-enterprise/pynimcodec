@@ -1,7 +1,8 @@
 """Compact Binary Codec Message class and methods."""
 
-import warnings
+import logging
 from enum import Enum
+from typing import Any
 
 import aiocoap
 
@@ -11,6 +12,8 @@ from pynimcodec.cbc.constants import MessageDirection
 from pynimcodec.cbc.field.base_field import Field, Fields, decode_fields, encode_fields
 from pynimcodec.cbc.field.common import create_field
 from pynimcodec.utils import camel_case, snake_case
+
+_log = logging.getLogger(__name__)
 
 
 class Message(CbcCodec):
@@ -48,17 +51,18 @@ class Message(CbcCodec):
         kwargs['message_key'] = message_key
         kwargs['fields'] = fields
         super().__init__(name, **kwargs)
-        self._direction: MessageDirection = None
-        self._message_key: int = None
-        self._fields: Fields = None
+        self._direction: MessageDirection = direction
+        assert isinstance(self._direction, MessageDirection)
+        self._message_key: int = message_key
+        assert isinstance(self._message_key, int)
+        assert self._message_key in range(0, 2**16)
+        self._fields: Fields = fields
+        assert isinstance(self._fields, Fields)
         # coap_compatible can be False to allow message_key values that may
         #  be misinterpreted as CoAP if sent without CoAP header
         self._coap_compatible: bool = kwargs.get('coap_compatible', True)
         # o_reserved True allows override of operator-reserved message_key values
         self._o_reserved: bool = kwargs.get('o_reserved', False)
-        self.direction = kwargs.get('direction')
-        self.message_key = kwargs.get('message_key')
-        self.fields = kwargs.get('fields')
     
     @property
     def direction(self) -> MessageDirection:
@@ -79,12 +83,12 @@ class Message(CbcCodec):
     
     @message_key.setter
     def message_key(self, value: int):
-        if not isinstance(value, int) or value not in range(0, 65536):
+        if not isinstance(value, int) or value not in range(0, 2**16):
             raise ValueError('message_key must be a 16-bit unsigned integer')
         if self._coap_compatible and value < 32768:
-            warnings.warn('message_key conflict with CoAP compatibility')
+            _log.warning('message_key conflict with CoAP compatibility')
         if not self._o_reserved and value > 65279:
-            warnings.warn('message_key conflict with vendor-reserved range')
+            _log.warning('message_key conflict with operator-reserved range')
         self._message_key = value
 
     @property
@@ -144,7 +148,7 @@ class Messages(CodecList[Message]):
     def __init__(self, *args) -> None:
         super().__init__(Message, *args)
     
-    def append(self, codec: Message) -> bool:
+    def append(self, codec: Message):
         """Append uniquely named Message codec to the end of the list.
         
         Args:
@@ -200,7 +204,7 @@ class Messages(CodecList[Message]):
             raise ValueError('Invalid buffer')
         return decode_message(buffer, messages=self, **kwargs)
     
-    def encode(self, content: dict, **kwargs) -> bytes:
+    def encode(self, content: dict, **kwargs) -> bytes|aiocoap.Message:
         """Encodes a message based on content in a dictionary.
         
         Args:
@@ -234,7 +238,7 @@ def create_message(obj: dict) -> Message:
     return Message(**{snake_case(k): v for k, v in obj.items()})
 
 
-def decode_message(buffer: bytes, **kwargs) -> dict:
+def decode_message(buffer: bytes, **kwargs) -> dict[str, Any]:
     """Decodes a Message from a data buffer.
     
     Which Message codec to use is determined by parsing either the first two
@@ -279,7 +283,7 @@ def decode_message(buffer: bytes, **kwargs) -> dict:
     nim = kwargs.get('nim') is True
     coap = kwargs.get('coap') is True
     offset = 0   # starting bit offset to read buffer from
-    if not message:
+    if not message and messages:
         if name:
             message = messages[name]
         else:
@@ -307,8 +311,11 @@ def decode_message(buffer: bytes, **kwargs) -> dict:
         coap_message = aiocoap.Message.decode(buffer)
         message_key = coap_message.mid
         buffer = coap_message.payload
-    if not message:
+    if not message and messages:
+        assert isinstance(message_key, int) and message_key in range(0, 65536)
+        assert isinstance(direction, MessageDirection)
         message = messages.by_key(message_key, direction)
+    assert message is not None
     if message_key and message_key != message.message_key:
         raise ValueError('Mismatch between provided/derived message_key')
     decoded = { 'name': message.name }
@@ -327,13 +334,13 @@ def decode_message(buffer: bytes, **kwargs) -> dict:
                 value = getattr(opt, 'value')
                 coap_options[int(number)] = value
             except (AttributeError):
-                warnings.warn('Error parsing CoAP option')
+                _log.warning('Error parsing CoAP option')
         if coap_options:
             decoded['coapOptions'] = coap_options
     return decoded
 
 
-def encode_message(content: dict, **kwargs) -> 'bytes|aiocoap.Message':
+def encode_message(content: dict, **kwargs) -> bytes|aiocoap.Message:
     """Encodes message content using a message definition.
     
     The data bytes produced will be appended to either the first two bytes of
@@ -368,11 +375,12 @@ def encode_message(content: dict, **kwargs) -> 'bytes|aiocoap.Message':
         raise ValueError('Invalid Message codec.')
     if not messages and not message:
         raise ValueError('Missing codec list or codec.')
-    if not message:
+    if not message and messages:
         try:
             message = messages[content['name']]
         except ValueError as exc:
             raise ValueError(f'Codec not found for {content["name"]}') from exc
+    assert message is not None
     if content['name'] != message.name:
         raise ValueError('Mismatch content name and Message name')
     buffer = bytearray()
