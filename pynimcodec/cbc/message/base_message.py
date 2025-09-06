@@ -235,6 +235,7 @@ def create_message(obj: dict) -> Message:
         if not isinstance(field, Field):
             obj['fields'][i] = create_field(field)
     obj['fields'] = Fields(obj['fields'])
+    obj['direction'] = MessageDirection(obj['direction'])
     return Message(**{snake_case(k): v for k, v in obj.items()})
 
 
