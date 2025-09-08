@@ -312,6 +312,8 @@ def decode_message(buffer: bytes, **kwargs) -> dict[str, Any]:
         coap_message = aiocoap.Message.decode(buffer)
         message_key = coap_message.mid
         buffer = coap_message.payload
+    else:
+        _log.info('No framing specified - decoding raw payload no headers')
     if not message and messages:
         assert isinstance(message_key, int) and message_key in range(0, 65536)
         assert isinstance(direction, MessageDirection)
@@ -393,6 +395,8 @@ def encode_message(content: dict, **kwargs) -> bytes|aiocoap.Message:
                                         buffer,
                                         offset)
         offset = 16
+    if not nim and not coap:
+        _log.info('Encoding payload-only (no NIM or CoAP header)')
     buffer, offset = encode_fields(content['value'], message, buffer, offset)
     if coap:
         return aiocoap.Message(mid=message.message_key, payload=bytes(buffer))
