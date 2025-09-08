@@ -43,7 +43,7 @@ def create_field(obj: dict) -> Field:
     if not isinstance(obj, dict):
         raise ValueError('Invalid object to create field.')
     if 'type' not in obj or obj['type'] not in FieldType:
-        raise ValueError('Invalid field type.')
+        raise ValueError(f'Invalid field type: {obj.get("type")}')
     if 'fields' in obj:
         if not isinstance(obj['fields'], list):
             raise ValueError('Invalid fields definition')
