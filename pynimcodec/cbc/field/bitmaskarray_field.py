@@ -180,12 +180,18 @@ def encode(field: BitmaskArrayField,
                 if not isinstance(row, dict):
                     if len(field.fields) > 1:
                         raise ValueError(f'{field.name} row {i} missing column keys')
-                    tmp_buffer, tmp_offset = col.encode(row, tmp_buffer, tmp_offset)
+                    tmp_buffer, tmp_offset = col.encode(
+                        row, tmp_buffer, tmp_offset
+                    )
                 else:
                     if col.name not in row:
                         raise ValueError(f'{field.name} row {i} missing {col.name}')
-                    tmp_buffer, tmp_offset = col.encode(row[col.name], tmp_buffer, tmp_offset)
-    buffer = append_bits_to_buffer(BitArray.from_int(bitmask, field.size), buffer)
+                    tmp_buffer, tmp_offset = col.encode(
+                        row[col.name], tmp_buffer, tmp_offset
+                    )
+    buffer = append_bits_to_buffer(
+        BitArray.from_int(bitmask, field.size), buffer, offset
+    )
     offset += field.size
     buffer = append_bytes_to_buffer(bytes(tmp_buffer), buffer, offset)
     offset += tmp_offset
