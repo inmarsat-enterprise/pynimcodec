@@ -1,194 +1,193 @@
 """Utilities for bit manipulation."""
 
-from typing import Any, Iterable
+from typing import Any, Iterable, Optional
 
 
-class BitArray(list):
-    """An array of bits for bitwise manipulation."""
-    
-    def __init__(self, *args) -> None:
-        for arg in args:
-            if arg not in (0, 1):
-                raise ValueError('All elements must be 0 or 1.')
-        super().__init__(args)
-    
-    def append(self, value: int) -> None:
-        if value not in (0, 1):
-            raise ValueError('Only 0 or 1 can be appended to BitArray.')
-        super().append(value)
-    
-    def extend(self, iterable: Iterable) -> None:
-        if not all(bit in (0, 1) for bit in iterable):
+class BitArray:
+    """An array of bits for bitwise manipulation.
+    """
+    # Internally backed by a bytearray for efficiency.
+
+    def __init__(self, bits: Iterable[int] | None = None, length: int | None = None):
+        if bits is None:
+            bits = []
+        bits = list(bits)
+        if not all(b in (0, 1) for b in bits):
             raise ValueError('All elements must be 0 or 1.')
-        super().extend(iterable)
-    
-    def insert(self, index: int, value: int) -> None:
-        if value not in (0, 1):
-            raise ValueError('Only 0 or 1 can be inserted into BitArray.')
-        super().insert(index, value)
-    
-    def __setitem__(self, index, value):
-        if value not in (0, 1):
-            raise ValueError('Only 0 or 1 can be assigned to BitArray element.')
-        super().__setitem__(index, value)
-    
-    # def __getitem__(self, s: slice) -> int:
-    #     if isinstance(s, slice):
-    #         sliced = super().__getitem__(s)
-    #         return sliced
-    #     return super().__getitem__(s)
+        if length is None:
+            length = len(bits)
+        if length < 0:
+            raise ValueError('Length must be non-negative.')
+        self._len = length
+        self._bytes = bytearray((length + 7) // 8)
+        for i, bit in enumerate(bits[:length]):
+            if bit:
+                self._bytes[i // 8] |= 1 << (7 - (i % 8))
 
-    # def __delitem__(self, index: int) -> None:
-    #     super().__delitem__(index)
-    
+    def __len__(self) -> int:
+        return self._len
+
+    def __getitem__(self, i: int | slice) -> 'int|BitArray':
+        if isinstance(i, slice):
+            start, stop, step = i.indices(self._len)
+            bits = [self[j] for j in range(start, stop, step)]
+            return BitArray(bits)   # type: ignore since j will not be a slice
+        if not 0 <= i < self._len:
+            raise IndexError
+        b = self._bytes[i // 8]
+        return (b >> (7 - (i % 8))) & 1
+
+    def __setitem__(self, i: int, val: int):
+        if val not in (0, 1):
+            raise ValueError('Only 0 or 1 allowed.')
+        if not 0 <= i < self._len:
+            raise IndexError
+        mask = 1 << (7 - (i % 8))
+        if val:
+            self._bytes[i // 8] |= mask
+        else:
+            self._bytes[i // 8] &= ~mask
+
+    def __delitem__(self, index: int | slice) -> None:
+        """Delete a bit or a slice of bits from the BitArray."""
+        if isinstance(index, int):
+            if not 0 <= index < self._len:
+                raise IndexError("BitArray index out of range")
+            # Convert all bits to a list, remove the bit, and rebuild
+            bits = [self[i] for i in range(self._len)]
+            del bits[index]
+            self.__init__(bits)   # type: ignore
+        elif isinstance(index, slice):
+            start, stop, step = index.indices(self._len)
+            bits = [self[i] for i in range(self._len)]
+            # delete slice
+            del bits[start:stop:step]
+            self.__init__(bits)   # type: ignore
+        else:
+            raise TypeError(f"BitArray indices must be int or slice, not {type(index).__name__}")
+
     def __repr__(self):
-        return f'BitArray({super().__repr__()})'
-    
+        return f'BitArray({[self[i] for i in range(self._len)]})'
+
     def __str__(self):
-        return '0b' + ''.join(str(bit) for bit in self)
-    
+        bits = ''.join(str(self[i]) for i in range(self._len))
+        return f'0b{bits}'
+
+    # -------------------------------------------------------------------------
+    # Constructors
+    # -------------------------------------------------------------------------
     @classmethod
-    def from_int(cls, value: int, length: int = None) -> 'BitArray':
-        """Create a BitArray instance from an integer.
-        
-        Args:
-            value (int): The integer value to convert to bits.
-            length (int): The number of bits to use, padding with 0s or
-                two's complement. If None uses the minimum required bits.
-            
-        Returns:
-            BitArray: The created BitArray instance.
-        
-        Raises:
-            ValueError: If value is not a valid integer or length is too small
-                to represent the number of bits.
-        """
+    def from_int(cls, value: int, length: int | None = None) -> 'BitArray':
         if not isinstance(value, int):
             raise ValueError('Invalid integer')
+
         if length is None:
-            length = value.bit_length() + (1 if value < 0 else 0)
-        if not isinstance(length, int) or length <= 0:
-            raise ValueError('Length must be a positive integer.')
+            length = max(1, value.bit_length() + (1 if value < 0 else 0))
+        if length <= 0:
+            raise ValueError('Length must be positive')
+
         if value < 0:
-            max_value = (1 << length)
-            value = max_value + value
-        bits = list(map(int, bin(value)[2:]))
-        if len(bits) > length:
-            raise ValueError('Length too small to represent the value.')
-        bits = [0] * (length - len(bits)) + bits
-        return cls(*bits)
-    
+            value = (1 << length) + value  # two's complement
+
+        bits = [(value >> i) & 1 for i in reversed(range(length))]
+        return cls(bits, length)
+
     @classmethod
-    def from_bytes(cls, value: 'bytes|bytearray') -> 'BitArray':
-        """Create a BitArray instance from a buffer of bytes.
-        
-        Args:
-            value (bytes): The buffer to convert to bits.
-        
-        Returns:
-            BitArray: The created BitArray instance.
-        
-        Raises:
-            ValueError: If value is not valid bytes.
-        """
-        if not isinstance(value, (bytes, bytearray)):
-            raise ValueError('Invalid bytes')
+    def from_bytes(cls, data: bytes | bytearray) -> 'BitArray':
+        if not isinstance(data, (bytes, bytearray)):
+            raise ValueError('Invalid bytes input.')
         bits = []
-        for byte in value:
-            bits.extend(int(bit) for bit in f'{byte:08b}')
-        return cls(*bits)
-    
-    def read_int(self, signed: bool = False, start: int = 0, end: int|None = None) -> int:
-        """Read the BitArray as an integer value.
-        
-        Args:
-            signed (bool): If set, use two's complement. Default unsigned.
-            start (int): The starting bit to read from (default 0)
-            end (int): The ending bit to read from (default None = end of array)
-        
-        Returns:
-            int: The integer value of the bits read.
-        
-        Raises:
-            ValueError: If start or end are invalid.
-        """
-        if not isinstance(start, int) or start < 0:
-            raise ValueError('Start bit must be positive integer')
-        if end is not None and (not isinstance(end, int) or (end < start)):
-            raise ValueError('end must be >= start or None')
-        result = 0
-        for i, bit in enumerate(reversed(self[start:end])):
-            result += 2**i if bit else 0
-        if signed and self[start]:
-            if end is None:
-                end = len(self)
-            result -= (1 << (end - start))
-        return result
-    
-    def read_bytes(self, start: int = 0, end: int|None = None) -> bytes:
-        """Read the BitArray as a data buffer.
-        
-        Args:
-            start (int): The bit to start reading from (default beginning)
-            end (int): The bit to stop reading at (default None = end)
-        
-        Returns:
-            bytes: The resulting buffer.
-        
-        Raises:
-            ValueError: If start or end are invalid.
-        """
-        if not isinstance(start, int) or start < 0:
-            raise ValueError('start bit must be positive integer.')
-        if end is not None and (not isinstance(end, int) or (end < start)):
-            raise ValueError('end must be >= start or None')
-        extract = BitArray(*self[start:end])
-        # create a bytearray for the full number of bytes needed then pack bits
-        result = bytearray((len(extract) + 7) // 8)
-        for i, bit in enumerate(extract):
+        for byte in data:
+            bits.extend((byte >> i) & 1 for i in reversed(range(8)))
+        return cls(bits)
+
+    # -------------------------------------------------------------------------
+    # Conversions
+    # -------------------------------------------------------------------------
+    def to_int(self, signed: bool = False) -> int:
+        value = 0
+        for i in range(self._len):
+            value = (value << 1) | self[i]   # type: ignore self[i] is int
+        if signed and self[0]:
+            value -= (1 << self._len)
+        return value
+
+    def to_bytes(self) -> bytes:
+        return bytes(self._bytes[: (self._len + 7) // 8])
+
+    # -------------------------------------------------------------------------
+    # Mutations
+    # -------------------------------------------------------------------------
+    def append(self, value: int) -> None:
+        if value not in (0, 1):
+            raise ValueError('Only 0 or 1 allowed.')
+        byte_index = self._len // 8
+        bit_index = self._len % 8
+        if bit_index == 0:
+            self._bytes.append(0)
+        if value:
+            self._bytes[byte_index] |= 1 << (7 - bit_index)
+        self._len += 1
+
+    def extend(self, iterable: Iterable[int]) -> None:
+        for bit in iterable:
+            self.append(bit)
+
+    def insert(self, index: int, value: Any) -> None:
+        """Insert a bit at position index."""
+        if not isinstance(index, int) or not 0 <= index <= self._len:
+            raise IndexError
+        if value not in (0, 1):
+            raise ValueError('Only 0 or 1 allowed.')
+        bits = [self[i] for i in range(self._len)]
+        bits.insert(index, value)
+        self.__init__(bits)   # type: ignore bits will always be list[int]
+
+    # -------------------------------------------------------------------------
+    # Bitwise Operations
+    # -------------------------------------------------------------------------
+    def lshift(self, n: int = 1, extend: bool = True) -> None:
+        if not isinstance(n, int) or n < 1:
+            raise ValueError('n must be > 0.')
+        bits = [self[i] for i in range(self._len)]
+        bits = bits[n:] + [0] * n if not extend else bits + [0] * n
+        self.__init__(bits[:self._len] if not extend else bits)   # type: ignore bits is always list[int]
+
+    def rshift(self, n: int = 1, preserve: bool = True) -> None:
+        if not isinstance(n, int) or n < 1:
+            raise ValueError('n must be > 0.')
+        bits = [self[i] for i in range(self._len)]
+        if preserve:
+            bits = [0] * n + bits[:-n]
+        else:
+            bits = bits[:-n]
+        self.__init__(bits)   # type: ignore
+
+    # -------------------------------------------------------------------------
+    # Read helpers
+    # -------------------------------------------------------------------------
+    def read_int(self, signed: bool = False, start: int = 0, end: int | None = None) -> int:
+        if end is None:
+            end = self._len
+        if not (0 <= start < end <= self._len):
+            raise ValueError('Invalid start/end.')
+        bits = [self[i] for i in range(start, end)]
+        value = 0
+        for bit in bits:
+            value = (value << 1) | bit   # type: ignore
+        if signed and bits[0]:
+            value -= (1 << len(bits))
+        return value
+
+    def read_bytes(self, start: int = 0, end: int | None = None) -> bytes:
+        if end is None:
+            end = self._len
+        bits = [self[i] for i in range(start, end)]
+        result = bytearray((len(bits) + 7) // 8)
+        for i, bit in enumerate(bits):
             if bit:
                 result[i // 8] |= 1 << (7 - (i % 8))
         return bytes(result)
-    
-    def lshift(self, n: int = 1, extend: bool = True) -> None:
-        """Shift the BitArray left by the specified n bits.
-        
-        Args:
-            n (int): The number of bits to shift.
-            extend (bool): If set (default) the BitArray extends in size else
-                the size remains and high order bits are discarded.
-        
-        Raises:
-            ValueError: If n or extend is invalid.
-        """
-        if not isinstance(n, int) or n < 1:
-            raise ValueError('n must be integer greater than 0.')
-        if not isinstance(extend, bool):
-            raise ValueError('extend must be bool.')
-        for i in range(n):
-            if not extend:
-                del self[0]
-            self.append(0)
-    
-    def rshift(self, n: int = 1, preserve: bool = True) -> None:
-        """Shift the BitArray right by the specified n bits.
-        
-        Args:
-            n (int): The number of bits to shift.
-            preserve (bool): If set (default) the BitArray retains its size else
-                the size reduces by n bits.
-        
-        Raises:
-            ValueError: If n or extend is invalid.
-        """
-        if not isinstance(n, int) or n < 1:
-            raise ValueError('n must be integer greater than 0.')
-        if n > len(self):
-            raise ValueError('n exceeds BitArray length.')
-        for i in range(n):
-            del self[len(self) - 1]
-            if preserve:
-               self.insert(0, 0)
 
 
 def is_int(candidate: Any, allow_string: bool = False) -> bool:
@@ -205,7 +204,7 @@ def is_int(candidate: Any, allow_string: bool = False) -> bool:
 
 def extract_from_buffer(buffer: bytes,
                         offset: int,
-                        length: int = None,
+                        length: Optional[int] = None,
                         signed: bool = False,
                         as_buffer: bool = False,
                         new_offset: bool = False,
