@@ -1,0 +1,246 @@
+{
+    "application": "exampleApplication",
+    "version": "0.1",
+    "description": "An example set of Compact Binary Codec message structures",
+    "messages": [
+        {
+            "name": "assetLocation",
+            "direction": "UPLINK",
+            "messageKey": 32769,
+            "description": "Typical location/tracking message",
+            "fields": [
+                {
+                    "name": "location",
+                    "type": "struct",
+                    "optional": true,
+                    "fields": [
+                        {
+                            "name": "fixTime",
+                            "description": "Time of the fix (seconds since 1970-01-01T00:00:00Z",
+                            "type": "uint",
+                            "size": 32
+                        },
+                        {
+                            "name": "latitude",
+                            "description": "Latitude milli-minutes (+/- 1.5m)",
+                            "type": "int",
+                            "size": 24,
+                            "encalc": "v*60000",
+                            "decalc": "v/60000"
+                        },
+                        {
+                            "name": "longitude",
+                            "description": "Longitude milli-minutes (+/- 1.5m)",
+                            "type": "int",
+                            "size": 25,
+                            "encalc": "v*60000",
+                            "decalc": "v/60000"
+                        },
+                        {
+                            "name": "altitude",
+                            "description": "Altitude (meters)",
+                            "type": "int",
+                            "size": 13,
+                            "optional": true
+                        },
+                        {
+                            "name": "speed",
+                            "description": "Speed (km/h)",
+                            "type": "uint",
+                            "size": 8,
+                            "optional": true
+                        },
+                        {
+                            "name": "heading",
+                            "description": "Course over ground (degrees from N)",
+                            "type": "uint",
+                            "size": 9,
+                            "optional": true
+                        },
+                        {
+                            "name": "gnssSatellites",
+                            "description": "Number of satellites used for fix",
+                            "type": "uint",
+                            "size": 4,
+                            "optional": true
+                        },
+                        {
+                            "name": "pdop",
+                            "description": "Probability Dilution of Precision",
+                            "type": "uint",
+                            "size": 5,
+                            "optional": true
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "getConfiguration",
+            "direction": "DOWNLINK",
+            "messageKey": 32770,
+            "description": "Query configuration settings",
+            "fields": [
+                {
+                    "name": "properties",
+                    "description": "If present specifies property names to query otherwise all are returned",
+                    "type": "array",
+                    "optional": true,
+                    "size": 100,
+                    "fields": [
+                        {
+                            "name": "name",
+                            "type": "string",
+                            "size": 50
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "configuration",
+            "direction": "UPLINK",
+            "messageKey": 32771,
+            "description": "Response to getConfiguration or configure",
+            "fields": [
+                {
+                    "name": "properties",
+                    "type": "array",
+                    "size": 100,
+                    "fields": [
+                        {
+                            "name": "name",
+                            "type": "string",
+                            "size": 50
+                        },
+                        {
+                            "name": "value",
+                            "type": "string",
+                            "size": 150
+                        },
+                        {
+                            "name": "dataType",
+                            "type": "string",
+                            "size": 20
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "setConfiguration",
+            "direction": "DOWNLINK",
+            "messageKey": 32771,
+            "description": "Remotely configure settings",
+            "fields": [
+                {
+                    "name": "properties",
+                    "type": "array",
+                    "size": 100,
+                    "fields": [
+                        {
+                            "name": "name",
+                            "type": "string",
+                            "size": 50
+                        },
+                        {
+                            "name": "value",
+                            "type": "string",
+                            "size": 150
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "telemetry",
+            "direction": "UPLINK",
+            "messageKey": 32772,
+            "description": "Example telemetry/sensor data",
+            "fields": [
+                {
+                    "name": "accessPanelClosed",
+                    "description": "State of the machine access panel for security",
+                    "type": "bool"
+                },
+                {
+                    "name": "valveControl",
+                    "description": "Control setting for a fluid valve",
+                    "type": "enum",
+                    "size": 3,
+                    "enum": {
+                        "0": "CLOSED",
+                        "1": "OPEN",
+                        "2": "33 PERCENT",
+                        "3": "50 PERCENT",
+                        "4": "75 PERCENT"
+                    }
+                },
+                {
+                    "name": "faultConditions",
+                    "type": "bitmask",
+                    "size": 8,
+                    "enum": {
+                        "0": "EMERGENCY_STOP",
+                        "1": "FLOW_SENSOR_FAULT",
+                        "2": "VALVE_CONTROL_FAULT",
+                        "3": "PUMP_MOTOR_OVERCURRENT"
+                    }
+                },
+                {
+                    "name": "txMetrics",
+                    "description": "Summary of transmitted packet success by type (e.g. CoAP)",
+                    "type": "bitmaskarray",
+                    "size": 4,
+                    "enum": {
+                        "0": "NON",
+                        "1": "CON",
+                        "2": "ACK",
+                        "3": "RES"
+                    },
+                    "fields": [
+                        {
+                            "name": "packetsOk",
+                            "type": "uint",
+                            "size": 16
+                        },
+                        {
+                            "name": "packetsFailed",
+                            "type": "uint",
+                            "size": 16
+                        }
+                    ]
+                },
+                {
+                    "name": "powerFactor",
+                    "description": "Pump motor's phase power factor",
+                    "type": "float",
+                    "size": 32
+                }
+            ]
+        },
+        {
+            "name": "highFidelityMeasurement",
+            "direction": "UPLINK",
+            "messageKey": 32773,
+            "fields": [
+                {
+                    "name": "sampleCount",
+                    "type": "uint",
+                    "size": 16
+                },
+                {
+                    "name": "samples",
+                    "description": "Vibration monitor samples accelerometer at 2kHz with each sample a 16-bit signed integer",
+                    "type": "data",
+                    "size": 1024
+                },
+                {
+                    "name": "crc",
+                    "type": "uint",
+                    "size": 16
+                }
+            ]
+        }
+    ]
+}
