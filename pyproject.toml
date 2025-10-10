@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pynimcodec"
-version = "0.4.14"
+version = "0.4.15"
 description = "Codecs for Satellite IoT messaging implemented in Python."
 authors = ["geoffbrucepayne <geoff.bruce-payne@inmarsat.com>"]
 license = "Apache2.0"
@@ -12,7 +12,7 @@ keywords = ["viasat", "inmarsat", "satellite", "iot", "idp", "ogx", "orbcomm"]
 python = "^3.10"
 aiocoap = "^0.4.12"
 
-[tool.poetry.dev-dependencies]
+[tool.poetry.group.dev.dependencies]
 pytest = "^7.4.3"
 pylint = "^3.0.2"
 
