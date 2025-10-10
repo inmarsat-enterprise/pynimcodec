@@ -158,9 +158,9 @@ def encode(field: ArrayField,
         for col in field.fields:
             if col.optional:
                 present = 1 if not isinstance(row, dict) or col.name in row else 0
-                tmp_buffer = append_bits_to_buffer([present],   # type: ignore
-                                                   tmp_buffer,
-                                                   tmp_offset)
+                tmp_buffer = append_bits_to_buffer(
+                    [present], tmp_buffer, tmp_offset   # type: ignore
+                )
                 tmp_offset += 1
                 if not present:
                     continue
