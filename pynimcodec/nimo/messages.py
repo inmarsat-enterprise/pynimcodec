@@ -132,14 +132,18 @@ class MessageCodec(BaseCodec):
                 if not present:
                     continue
             bin_str += field.encode()
-        for _ in range(0, 8 - len(bin_str) % 8):   #:pad to next byte
-            bin_str += '0'
+        if(len(bin_str) % 8):
+            for _ in range(0, 8 - len(bin_str) % 8):   #:pad to next byte
+                bin_str += '0'
         _format = f'0{int(len(bin_str) / 8 * 2)}X'   #:hex bytes 2 chars
-        hex_str = format(int(bin_str, 2), _format)
-        if (self.is_forward and len(hex_str) / 2 > 9998 or
-            not self.is_forward and len(hex_str) / 2 > 6398):
-            raise ValueError(f'{len(hex_str) / 2} bytes exceeds maximum size'
-                             ' for Payload')
+        if(bin_str):
+            hex_str = format(int(bin_str, 2), _format)
+            if (self.is_forward and len(hex_str) / 2 > 9998 or
+                not self.is_forward and len(hex_str) / 2 > 6398):
+                raise ValueError(f'{len(hex_str) / 2} bytes exceeds maximum size'
+                                ' for Payload')
+        else:
+            hex_str = ''
         if data_format == DataFormat.HEX:
             data = hex_str
         else:

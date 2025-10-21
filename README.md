@@ -3,7 +3,7 @@
 A set of message codecs for use with satellite IoT products implemented
 in Python.
 
-## nimo
+## NIMO
 
 The NIMO message codec was designed by ORBCOMM and represents an efficient
 binary data packing for various data types at a bit-level.
@@ -33,3 +33,27 @@ decoding of subsequent `<Fields>` containing data.
 a data type such as `<SignedIntField>`, `<EnumField>`, etc.
 These fields can be defined on individual bitwise boundaries, for example a
 5-bit unsigned integer with maximum value 31, or a boolean single bit.
+
+> [!WARNING]
+> Fields types currently not supported by this library include:
+> PropertyField, DynamicField, MessageField, ArrayField
+
+### Running Tests
+
+Several example test cases have been included as an example of encoding and
+decoding messages using different types of codecs. The primary test cases include:
+
+* test_nimo_encode_decode
+* test_nimo_decode_properties
+* test_nimo_decode_lua_terminals
+* test_nimo_sc1000
+
+These tests can be run using `pytest`.
+
+Each test case includes a `exclude` which can be toggled to include the
+test case when running the full decode or encode suite of test cases.
+
+Certain test cases include codecs which can not be shared publicly. If
+you require these codecs, please contact mark.dabrowski@viasat.com.
+
+

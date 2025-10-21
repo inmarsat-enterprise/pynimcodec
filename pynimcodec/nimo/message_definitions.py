@@ -151,7 +151,7 @@ class MessageDefinitions:
                 if k_tag in ['size']:
                     val = int(val)
                 elif k_tag in ['optional', 'fixed']:
-                    val = bool(val)
+                    val = str(val).strip().lower() in ("true", "1", "yes", "y")
                 f_kwargs[k_tag] = val
         if f_type == 'BooleanField':
             f_codec = BooleanField(f_name, **f_kwargs)
@@ -288,7 +288,7 @@ def parse_field(field: dict, data: bytes, offset: int) -> 'tuple[dict, int]':
         'messageField': parse_message_field
     }
     field_type = field.get('type')
-    if 'optional' in field:
+    if 'optional' in field and field.get('optional'):
         field_present = extract_bits(data, offset, 1)
         offset += 1
     else:
@@ -297,7 +297,8 @@ def parse_field(field: dict, data: bytes, offset: int) -> 'tuple[dict, int]':
         return {}, offset
     if field_type not in handler:
         raise ValueError(f'No handler for field_type {field_type}')
-    return handler[field_type](field, data, offset)
+    fieldCopy = field.copy()
+    return handler[field_type](fieldCopy, data, offset)
 
 
 def parse_generic(field: dict, value) -> dict:
@@ -306,8 +307,8 @@ def parse_generic(field: dict, value) -> dict:
         'value': str(value),
         'type': str(field.get('type')).replace('Field', ''),
     }
-    if 'description' in field:
-        decoded['description'] = field.get('description')
+    # if 'description' in field:
+    #     decoded['description'] = field.get('description')
     return decoded
 
 
@@ -340,7 +341,7 @@ def parse_enum_field(field: dict, data: bytes, offset: int) -> 'tuple[dict, int]
 def parse_str_field(field: dict, data: bytes, offset: int) -> 'tuple[dict, int]':
     """"""
     str_max_len = field.get('size')
-    if 'fixed' in field:
+    if ('fixed') in field and field.get('fixed'):
         str_len = str_max_len
     else:
         str_len, offset = parse_field_length(data, offset)
@@ -352,7 +353,7 @@ def parse_str_field(field: dict, data: bytes, offset: int) -> 'tuple[dict, int]'
 def parse_data_field(field: dict, data: bytes, offset: int) -> 'tuple[dict, int]':
     """"""
     data_max_len = field.get('size')
-    if 'fixed' in field:
+    if ('fixed') in field and field.get('fixed'):
         data_len = data_max_len
     else:
         data_len, offset = parse_field_length(data, offset)
@@ -388,23 +389,26 @@ def parse_array_field(field: dict, data: bytes, offset: int) -> 'tuple[dict, int
         field_len = array_max_len
     else:
         field_len, offset = parse_field_length(data, offset)
+    index = 0
     for _row in range(0, field_len):
-        decoded_cols = {}
+        decoded_cols = {"fields":[]}
         for col in field.get('fields'):
-            if 'optional' in col:
+            if 'optional' in col and col.get('optional'):
                 col_present = extract_bits(data, offset, 1)
-                offset += 1
             else:
                 col_present = 1
             if not col_present:
+                offset += 1
                 continue
-            col_name: str = col.get('name')
+ 
             decoded_field, offset = parse_field(col, data, offset)
             if decoded_field:
-                decoded_cols[col_name] = decoded_field
+                decoded_cols["fields"].append(decoded_field)
         if decoded_cols:
+            decoded_cols["index"] = index
+            index += 1
             array_values.append(decoded_cols)
-    decoded = { 'name': array_name, 'fields': array_values }
+    decoded = { 'name': array_name, 'elements': array_values, 'type': 'array' }
     return decoded, offset
 
 def parse_dynamic_field(field: dict, data: bytes, offset: int) -> 'tuple[dict, int]':
@@ -489,15 +493,15 @@ def decode_message(data: bytes,
             if message.get('codecMessageId') != codec_min:
                 continue
             decoded['name'] = message.get('name')
-            if 'description' in message:
-                decoded['description'] = message.get('description')
+            # if 'description' in message:
+            #     decoded['description'] = message.get('description')
             decoded['codecServiceId'] = codec_sin
             decoded['codecMessageId'] = codec_min
             offset = 16   #: Begin after codec header (SIN, MIN)
             decoded_fields = []
             for field in message.get('fields'):
                 assert isinstance(field, dict)
-                if 'optional' in field:
+                if 'optional' in field and field.get('optional'):
                     field_present = extract_bits(data, offset, 1) 
                 else:
                     field_present = 1
@@ -543,9 +547,9 @@ def encode_message(data: dict,
             field.value = field_value
     encoded_payload = message.encode(DataFormat.BASE64)
     
-    hex_message = (format(encoded_payload['sin'], '02X') +
-                format(encoded_payload['min'], '02X') +
-                base64.b64decode(encoded_payload['data']).hex())
+    hex_message = (format(encoded_payload['sin'], '02X') + format(encoded_payload['min'], '02X'))
+    if(len(encoded_payload['data'])):
+        hex_message += base64.b64decode(encoded_payload['data']).hex()
     bytes_from_hex = bytes.fromhex(hex_message)
     encoded_raw_payload = base64.b64encode(bytes_from_hex)
     

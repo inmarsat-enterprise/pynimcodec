@@ -55,6 +55,7 @@ class MessageField(FieldCodec):
         return bits + (1 if self.optional else 0)
     
     def encode(self) -> str:
+        #TODO
         """Returns the binary string of the field value."""
         # if self.value is None and not self.optional:
         #     raise ValueError(f'No value defined for MessageField {self.name}')
@@ -64,6 +65,7 @@ class MessageField(FieldCodec):
         return None
 
     def decode(self, binary_str: str) -> int:
+        #TODO
         """Populates the field value from binary and returns the next offset.
         
         Args:

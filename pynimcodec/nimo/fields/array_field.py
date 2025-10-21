@@ -184,6 +184,7 @@ class ArrayField(FieldCodec):
         return self.elements[new_index]
 
     def encode(self) -> str:
+        #TODO
         """Returns the binary string of the field value."""
         if len(self.elements) == 0:
             raise ValueError('No elements to encode')
@@ -196,6 +197,7 @@ class ArrayField(FieldCodec):
         return binstr
 
     def decode(self, binary_str: str) -> int:
+        #TODO
         """Populates the field value from binary and returns the next offset.
         
         Args:

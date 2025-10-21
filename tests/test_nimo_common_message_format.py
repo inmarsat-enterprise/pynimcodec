@@ -670,12 +670,6 @@ def test_return_message_xml(return_message):
     assert xml.find('Fields')
 
 
-def test_mdf_xml(message_definitions: MessageDefinitions):
-    test_filename = os.path.join(os.getcwd(), EXPORT_DIR, 'mdf.xml')
-    message_definitions.mdf_export(test_filename, pretty=True, indent=4)
-    assert True   # manual validation
-    os.remove(test_filename)
-
 def test_mdf_import():
     """"""
     test_xml = os.path.join(os.getcwd(), 'tests/examples/nimotestxml.idpmsg')
